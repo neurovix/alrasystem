@@ -7,7 +7,7 @@ export default function ClientsLayout() {
   return (
     <ThemeProvider value={DefaultTheme}>
       <Stack>
-        <Stack.Screen name="cliente" options={{ headerShown: false }} />
+        <Stack.Screen name="listClient" options={{ headerShown: false }} />
         <Stack.Screen name="newClient" options={{ headerShown: false }} />
         <Stack.Screen name="[id]" options={{ headerShown: false }} />
       </Stack>

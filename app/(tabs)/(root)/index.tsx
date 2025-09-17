@@ -204,13 +204,13 @@ export default function Home() {
             </TouchableOpacity>
           </View>
           <View className="flex flex-row w-full mt-3 justify-between">
-            <TouchableOpacity onPress={() => router.push("/screens/clients/cliente")} className="w-[48%] flex items-center border-b-4 border-green-500 bg-emerald-50 rounded-xl py-4">
+            <TouchableOpacity onPress={() => router.push("/screens/clients/listClient")} className="w-[48%] flex items-center border-b-4 border-green-500 bg-emerald-50 rounded-xl py-4">
               <Image tintColor="#059669" source={icons.registerUser} />
               <Text className="font-ibm-condensed-bold pt-2 text-lg">
                 Clientes
               </Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => router.push("/screens/material/material")} className="w-[48%] flex items-center border-b-4 border-green-500 bg-emerald-50 rounded-xl py-4">
+            <TouchableOpacity onPress={() => router.push("/screens/material/listMaterial")} className="w-[48%] flex items-center border-b-4 border-green-500 bg-emerald-50 rounded-xl py-4">
               <Image tintColor="#059669" source={icons.material} />
               <Text className="font-ibm-condensed-bold pt-2 text-lg">
                 Materiales

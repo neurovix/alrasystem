@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-export default function Cliente() {
+export default function ListClient() {
   return (
     <SafeAreaView className="bg-green-600 flex-1">
       <View className="flex flex-row items-center px-3">

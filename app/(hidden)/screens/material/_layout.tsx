@@ -7,8 +7,8 @@ export default function ClientsLayout() {
   return (
     <ThemeProvider value={DefaultTheme}>
       <Stack>
-        <Stack.Screen name="material" options={{ headerShown: false }} />
-        <Stack.Screen name="[id]" options={{ headerShown: false }} />
+        <Stack.Screen name="listMaterial" options={{ headerShown: false }} />
+        <Stack.Screen name="newMaterial" options={{ headerShown: false }} />
       </Stack>
       <StatusBar style="auto" />
     </ThemeProvider>
