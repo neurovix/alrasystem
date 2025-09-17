@@ -1,5 +1,5 @@
 import icons from "@/constants/icons";
-import { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
+import DateTimePicker, { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
 import { Picker } from "@react-native-picker/picker";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import CheckBox from "expo-checkbox";
@@ -8,12 +8,13 @@ import { useRef, useState } from "react";
 import {
   Button,
   Image,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -23,10 +24,11 @@ export default function Add() {
   const [date, setDate] = useState(new Date());
 
   const [permission, requestPermission] = useCameraPermissions();
-  
+
   const cameraRef = useRef<CameraView>(null);
 
   const [showCamera, setShowCamera] = useState(false);
+  const [showPicker, setShowPicker] = useState(false); // para iOS
 
   const [checkedVenta, setCheckedVenta] = useState<boolean>(false);
   const [checkedMaquila, setCheckedMaquila] = useState<boolean>(false);
@@ -64,7 +66,11 @@ export default function Add() {
   };
 
   const showDatepicker = () => {
-    showMode("date");
+    if (Platform.OS === "android") {
+      showMode("date");
+    } else {
+      setShowPicker(true);
+    }
   };
 
   return (
@@ -109,8 +115,10 @@ export default function Add() {
           </View>
 
           <Text className="mt-5 text-2xl font-ibm-devanagari-bold">Tipo</Text>
-          <View className="border-2 border-black rounded-xl mt-2">
-            <Picker>
+          <View style={styles.pickerContainer}>
+            <Picker
+              style={Platform.OS === 'ios' ? styles.pickerIOS : styles.picker}
+            >
               <Picker.Item label="PET" value={0} />
               <Picker.Item label="PP" value={1} />
               <Picker.Item label="HDPE" value={2} />
@@ -140,6 +148,23 @@ export default function Add() {
             onPress={showDatepicker}
             title="Fecha de recibido"
           />
+
+          {/* Picker para iOS */}
+          {Platform.OS === "ios" && showPicker && (
+            <DateTimePicker
+              value={date}
+              mode="date"
+              display="spinner" // o "default"
+              onChange={(event, selectedDate) => {
+                setShowPicker(false);
+                if (selectedDate) setDate(selectedDate);
+              }}
+            />
+          )}
+
+          <Text className="text-lg mt-2">
+            Fecha seleccionada: {date.toLocaleDateString()}
+          </Text>
 
           <Text className="mt-5 text-2xl font-ibm-devanagari-bold">
             Cliente
@@ -251,5 +276,18 @@ const styles = StyleSheet.create({
     height: 70,
     borderRadius: 50,
     backgroundColor: "white",
+  },
+  pickerContainer: {
+    borderWidth: 2,
+    borderColor: 'black',
+    borderRadius: 10,
+    overflow: 'hidden',
+  },
+  picker: {
+    height: 50,
+  },
+  pickerIOS: {
+    height: 200, // <-- ajusta este valor a lo que prefieras
+    fontSize: 16, // opcional
   },
 });

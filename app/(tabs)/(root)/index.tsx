@@ -27,25 +27,46 @@ function createPieSlice(
 }
 
 export default function Home() {
-  const data = [
-    { label: "En proceso", value: 45, color: "#16a34a" }, // verde claro
-    { label: "Finalizados", value: 10, color: "#059669" }, // verde fuerte
+  const dataLotes = [
+    { label: "En proceso", value: 45, color: "#eab308" }, // amarillo
+    { label: "Finalizados", value: 10, color: "#059669" }, // verde
   ];
 
-  const total = data.reduce((acc, item) => acc + item.value, 0);
-  let startAngle = 0;
+  const totalLotes = dataLotes.reduce((acc, item) => acc + item.value, 0);
+  let startAngleLote = 0;
 
-  const slices = data.map((item, index) => {
-    const angle = (item.value / total) * 2 * Math.PI;
+  const slicesLote = dataLotes.map((item, index) => {
+    const angle = (item.value / totalLotes) * 2 * Math.PI;
     const slice = createPieSlice(
       75,
       75,
       70,
-      startAngle,
-      startAngle + angle,
+      startAngleLote,
+      startAngleLote + angle,
       item.color
     );
-    startAngle += angle;
+    startAngleLote += angle;
+    return <G key={index}>{slice}</G>;
+  });
+
+  const dataMerma = [
+    { label: "En proceso", value: 40, color: "#15803d" }, // verde
+    { label: "Finalizados", value: 20, color: "#b91c1c" }, // rojo
+  ];
+
+  let startAngleMerma = 0;
+
+  const slicesMerma = dataMerma.map((item, index) => {
+    const angle = (item.value / totalLotes) * 2 * Math.PI;
+    const slice = createPieSlice(
+      75,
+      75,
+      70,
+      startAngleMerma,
+      startAngleMerma + angle,
+      item.color
+    );
+    startAngleMerma += angle;
     return <G key={index}>{slice}</G>;
   });
 
@@ -70,7 +91,7 @@ export default function Home() {
                 stroke="#f0fdf4"
                 strokeWidth="2"
               />
-              {slices}
+              {slicesLote}
               {/* Círculo interno para efecto donut */}
               <Circle
                 cx="75"
@@ -83,7 +104,7 @@ export default function Home() {
             </Svg>
             <View className="absolute inset-0 items-center justify-center">
               <Text className="text-2xl font-ibm-devanagari-bold text-green-700">
-                {total}
+                {totalLotes}
               </Text>
               <Text className="text-xs text-green-500 font-ibm-condensed-bold">
                 TOTAL
@@ -91,7 +112,7 @@ export default function Home() {
             </View>
           </View>
           <View className="w-7/12 flex flex-col items-center px-5">
-            <View className="bg-yellow-50 rounded-xl p-4 w-full mb-3 border-l-4 border-yellow-500">
+            <View className="bg-yellow-50 rounded-xl px-4 py-1 w-full mb-3 border-l-4 border-yellow-500">
               <View className="flex flex-row items-center mb-2">
                 <View className="w-3 h-3 bg-yellow-500 rounded-full mr-2"></View>
                 <Text className="font-ibm-condensed-bold text-green-700 text-lg">
@@ -103,7 +124,7 @@ export default function Home() {
               </Text>
               <Text className="text-green-600 text-xs">lotes activos</Text>
             </View>
-            <View className="bg-emerald-50 rounded-xl p-4 border-l-4 w-full border-emerald-500">
+            <View className="bg-emerald-50 rounded-xl px-4 py-1 border-l-4 w-full border-emerald-500">
               <View className="flex flex-row items-center mb-2">
                 <View className="w-3 h-3 bg-emerald-500 rounded-full mr-2"></View>
                 <Text className="font-ibm-condensed-bold text-emerald-700 text-lg">
@@ -117,6 +138,39 @@ export default function Home() {
             </View>
           </View>
         </View>
+        <View className="w-full h-1 bg-gray-400 my-5"></View>
+        <View className="w-full flex flex-row">
+          <View className="w-5/12 items-center justify-center">
+            <Svg height="150" width="150">
+              {slicesMerma}
+            </Svg>
+          </View>
+          <View className="w-7/12 flex flex-col items-center px-5">
+            <View className="bg-green-50 rounded-xl px-2 py-1 w-full mb-3 border-l-4 border-green-500">
+              <View className="flex flex-row items-center mb-2">
+                <View className="w-3 h-3 bg-green-500 rounded-full mr-2"></View>
+                <Text className="font-ibm-condensed-bold text-green-700 text-lg">
+                  Salida
+                </Text>
+              </View>
+              <Text className="text-xl font-ibm-devanagari-bold text-green-800">
+                459,786,435
+              </Text>
+            </View>
+            <View className="bg-red-50 rounded-xl px-2 py-1 border-l-4 w-full border-red-500">
+              <View className="flex flex-row items-center mb-2">
+                <View className="w-3 h-3 bg-red-600 rounded-full mr-2"></View>
+                <Text className="font-ibm-condensed-bold text-emerald-700 text-lg">
+                  Merma
+                </Text>
+              </View>
+              <Text className="text-xl font-ibm-devanagari-bold text-emerald-800">
+                10,849
+              </Text>
+            </View>
+          </View>
+        </View>
+        <View className="w-full h-1 bg-gray-400 my-5"></View>
         <View>
           <Text className="text-2xl font-ibm-condensed-bold pt-3">
             Administracion
@@ -150,16 +204,16 @@ export default function Home() {
             </TouchableOpacity>
           </View>
           <View className="flex flex-row w-full mt-3 justify-between">
-            <TouchableOpacity onPress={() => router.push("/screens/molienda")} className="w-[48%] flex items-center border-b-4 border-green-500 bg-emerald-50 rounded-xl py-4">
+            <TouchableOpacity onPress={() => router.push("/screens/clients/cliente")} className="w-[48%] flex items-center border-b-4 border-green-500 bg-emerald-50 rounded-xl py-4">
               <Image tintColor="#059669" source={icons.registerUser} />
               <Text className="font-ibm-condensed-bold pt-2 text-lg">
-                Registrar cliente
+                Clientes
               </Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => router.push("/screens/material")} className="w-[48%] flex items-center border-b-4 border-green-500 bg-emerald-50 rounded-xl py-4">
+            <TouchableOpacity onPress={() => router.push("/screens/material/material")} className="w-[48%] flex items-center border-b-4 border-green-500 bg-emerald-50 rounded-xl py-4">
               <Image tintColor="#059669" source={icons.material} />
               <Text className="font-ibm-condensed-bold pt-2 text-lg">
-                Registrar material
+                Materiales
               </Text>
             </TouchableOpacity>
           </View>
