@@ -1,0 +1,2 @@
+- Checar lo de <CameraView /> ({children}: props [ReactNode])
+- Agregar lo de historial de lotes en la pantalla de cada cliente

@@ -13,6 +13,7 @@ export default function ScreensLayout() {
         <Stack.Screen name="venta" options={{ headerShown: false }} />
         <Stack.Screen name="material" options={{ headerShown: false }} />
         <Stack.Screen name="clients" options={{ headerShown: false }} />
+        <Stack.Screen name="lotes" options={{ headerShown: false }} />
       </Stack>
       <StatusBar style="auto" />
     </ThemeProvider>

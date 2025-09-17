@@ -3,7 +3,7 @@ import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React from "react";
 
-export default function ClientsLayout() {
+export default function MaterialLayout() {
   return (
     <ThemeProvider value={DefaultTheme}>
       <Stack>
