@@ -71,14 +71,14 @@ export default function Home() {
   });
 
   return (
-    <SafeAreaView>
+    <SafeAreaView className="bg-green-600">
+      <Text className="text-3xl p-5 text-white font-ibm-condensed-bold">
+        Informacion semanal
+      </Text>
       <ScrollView
         className="bg-white px-5 pt-2"
-        contentContainerStyle={{ paddingBottom: 100 }}
+        contentContainerStyle={{ paddingBottom: 170 }}
       >
-        <Text className="text-3xl pt-5 font-ibm-devanagari-bold">
-          Informacion semanal
-        </Text>
         <View className="w-full flex flex-row pt-3">
           <View className="w-5/12 items-center justify-center">
             <Svg height="150" width="150">

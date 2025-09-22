@@ -47,7 +47,10 @@ export default function Configuracion() {
   );
 
   return (
-    <SafeAreaView className="flex-1 bg-black">
+    <SafeAreaView className="flex-1 bg-green-600">
+      <Text className="text-3xl text-white p-5 font-ibm-condensed-bold">
+        Configuracion
+      </Text>
       <ScrollView
         className="bg-white pt-5"
         contentContainerStyle={{ paddingBottom: 100 }}

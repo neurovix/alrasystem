@@ -1,2 +1,91 @@
 - Checar lo de <CameraView /> ({children}: props [ReactNode])
-- Agregar lo de historial de lotes en la pantalla de cada cliente
+- Agregar lo de historial de lotes en la pantalla de cada cliente -- DONE
+
+Ayudame a disenar la base de datos para mi aplicacion en la recicladora.
+
+#Las pantallas de la aplicacion son:
+##Inicio: Aqui se ven los graficos en forma de pay con la informacion semanal, se ven dos graficos los cuales muestran lo siguiente:
+    - En el grafico #1 se ven los lotes en proceso y los lotes finalizados semanalmente.
+    - En el grafico #2 se ve la cantidad de merma que ha habido en la semana, se ve el total de material de entrada semanal y la merma semanal
+
+##Nuevo Lote: Aqui se registra un nuevo lote el cual ocupa las siguientes cosas:
+-Nombre de lote: Este es asignado automaticamente asi "LT-{num_de_lote}", donde se traera el ultimo id del lote de la base de datos y se le sumara uno
+-Tipo de plastico: Este es un picker para seleccionar el tipo de plastico
+-Peso de entrada: Aqui se ingresa el peso de entrada del lote y al lado de el esta un picker para seleccionar si es en "kg" o en "toneladas (ton)"
+-Fecha de recibido: Aqui se ingresa la fecha de recibido del lote
+-Cliente: Aqui se selecciona el cliente del cual fue recibido el material en un picker
+-Proceso: Aqui son dos checkbox con las opciones "Venta" o "Maquila"
+-Fotos: Por ultimo se ingresan fotos del lote, ya sea el camion entrando, la balanza donde se ve el material, etc.
+
+##Molienda: Aqui se registra la molienda del lote, en esta pantalla se piden las siguiente cosas:
+-Seleccion del lote: Este es un picker donde se ven los id de los lotes, para seleccionar el lote a moler
+-Peso de salida: Aqui se ingresa el peso de salida e igualmente al lado un picker con las opciones "kg" o "ton"
+-Merma: Aqui se ve un texto que dice merma y al lado se ve la merma que se calcula automaticamente con el peso de ingreso del lote menos el peso de salida de molienda
+-Fecha de molido: Aqui se ingresa la fecha de molido
+-Fotos: Igualmente se ingresan hasta un maximo de 6 fotos del proceso de molienda
+
+##Peletizado: Aqui se registra el peletizado del lote, en esta pantalla se piden las siguiente cosas:
+-Seleccion del lote: Este es un picker donde se ven los id de los lotes, para seleccionar el lote a peletizar
+-Peso de salida: Aqui se ingresa el peso de salida e igualmente al lado un picker con las opciones "kg" o "ton"
+-Merma: Aqui se ve un texto que dice merma y al lado se ve la merma que se calcula automaticamente con el peso de salida de molienda menos el peso de salida de peletizado
+-Fecha de molido: Aqui se ingresa la fecha de peletizado
+-Fotos: Igualmente se ingresan hasta un maximo de 6 fotos del proceso de peletizado
+
+##Retorno a planta: Aqui se registra el retorno a planta del lote, en esta pantalla se piden las siguientes cosas:
+-Seleccion del lote: Este es un picker donde se ven los id de los lotes, para seleccionar el lote a retorno a planta
+-Peso de salida: Aqui se ingresa el peso de salida e igualmente al lado un picker con las opciones "kg" o "ton"
+-Merma: Aqui se ve un texto que dice merma y al lado se ve la merma que se calcula automaticamente con el peso de salida de peletizado o molienda menos el peso de salida de retorno a planta
+-Fecha de molido: Aqui se ingresa la fecha de retorno a planta
+-Cliente: Aqui se selecciona el cliente al cual se le regresara el lote en un picker
+-Fotos: Igualmente se ingresan hasta un maximo de 6 fotos del proceso de retorno a planta
+
+##Venta: Aqui se registra la venta del lote, en esta pantalla se piden las siguientes cosas:
+-Seleccion del lote: Este es un picker donde se ven los id de los lotes, para seleccionar el lote a vender
+-Peso de salida: Aqui se ingresa el peso de salida e igualmente al lado un picker con las opciones "kg" o "ton"
+-Merma: Aqui se ve un texto que dice merma y al lado se ve la merma que se calcula automaticamente con el peso de salida de peletizado o molienda menos el peso de salida de venta
+-Fecha de molido: Aqui se ingresa la fecha de venta
+-Cliente: Aqui se selecciona el cliente al cual se le regresara el lote en un picker
+-Fotos: Igualmente se ingresan hasta un maximo de 6 fotos del proceso de retorno a planta
+
+##Clientes: Aqui se ve la lista de clientes que tiene la recicladora, se ve una lista, en la que cada cliente
+se ve los siguientes datos, se ve en recuadros horizontales partido en 3 partes, en la parte izquierda se ve la primera letra del nombre del cliente,
+en la parte central se ve arriba el nombre del cliente y debajo el nombre de la empresa al que pertenece, y en la parte izquierda se ve una flecha la cual te lleva a una pantalla para ver la informacion de ese cliente,
+Debajo de todos los clientes hay un boton con el simbolo de "+" para agregar a un nuevo cliente
+
+##Detalles de cliente: En esta pantalla se ven los detalles del cliente, en el cual se ven el nombre del cliente y el nombre de la empresa en la cima de la pantalla.
+Debajo de esto esta la lista de lotes que se han tenido con ese cliente.
+
+##Agregar cliente: En esta pantalla aparecen dos inputs, el input para ingresar el nombre del cliente y el nombre de la empresa para agregar al cliente.
+
+##Materiales: En esta pantalla se ve la lista de tipos de plastico que procesa la recicladora, se ven recuadros de manera horizontal los cuales contienen:
+en la parte izquierda un icono, en la parte central el nombre del material y en la parte derecha un icono para borrar ese material.
+Debajo de todos los materiales esta un boton con el simbolo de "+" para agregar un nuevo material.
+
+##Agregar material: En esta pantalla solamente esta un input donde se ingresa el nombre del material.
+
+##Historial de lotes: En esta pantalla se ve de manera vertical una lista de lotes los cuales estan en proceso,
+estan ordenados de manera horizontal, en cada lote esta partido en tres partes, en la parte de la izquierda se ve un icono,
+en la parte central se ve el nombre del lote y debajo del nombre se ven dos cosas, un texto que dice en proceso y al lado el proceso en el que va como "Molienda","Peletizado","Retorno a planta" o "Venta",
+en la parte derecha se ve una flecha si la cual se presiona se veran los detalles del lote.
+
+##Informacion del lote: En esta pantalla se ve toda la informacion del lote, proceso a proceso por el que el lote paso, fotos del lote, fechas de recibido, proceso al cual fue "Maquila" o "Venta", pesos de salida, merma, peso inicial del lote y el peso final.
+
+##Inventario: En esta pantalla esta el inventario de la empresa, los tipos de plastico, la cantidad que hay, esta informacion
+se ve de manera horizontal en recuadros ordenados de manera vertical, en cada recuadro esta partido en 3 partes:
+en la parte izquierda se ve un simbolo, en la parte central se ve el nombre del material, debajo de este se ve la cantidad de material que hay en kg,
+en la parte derecha se ve una flecha para poder ver la informacion del material.
+
+##Edicion de material: En esta pantalla se ven dos inputs, en el primer input se ingresa el nombre del material,
+y en el segundo input se ingresa la cantidad del material en kg.
+
+##Registro de material: En esta pantalla igualmente solo se ven dos inputs, en el primer input se ingresa el nombre del material,
+y en el segundo input se ingresa la cantidad inicial del material en kg.
+
+##Configuracion: En esta pantalla se ve la informacion del usuario loggeado, se ve el nombre, el rol en el sistema
+ya sea "Operador" o "Administrador" y el correo electronico.
+
+#A continuacion estan las rutas las cuales pueden tomar los lotes desde que ingresan hasta que sales
+##Recibo de material-Molienda-Peletizado-Retorno a planta
+##Recibo de material-Molienda-Peletizado-Venta
+##Recibo de material-Molienda-Retorno a planta
+##Recibo de material-Molienda-Venta
