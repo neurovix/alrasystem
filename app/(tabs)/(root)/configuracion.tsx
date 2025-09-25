@@ -5,6 +5,7 @@ import FontAwesome from '@expo/vector-icons/FontAwesome';
 import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { router } from "expo-router";
+import { useEffect, useState } from "react";
 import { Alert, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -29,6 +30,37 @@ export default function Configuracion() {
       ]
     );
   };
+
+  const [userData, setUserData] = useState<any>(null);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const { data, error } = await supabase.auth.getUser();
+
+      if (error) {
+        console.log(error);
+        throw error;
+      }
+
+      const user = data.user;
+
+      if (user) {
+        const { data: perfil, error: perfilError } = await supabase.from("usuarios").select("nombre,rol").eq("id_usuario",user.id).single();
+
+        if (perfilError) {
+          console.log(perfilError);
+        } else {
+          setUserData({
+            email: user?.email,
+            nombre: perfil?.nombre,
+            rol: perfil?.rol,
+          });
+        }
+      }
+    }
+
+    fetchUser();
+  }, [])
 
   const ProfileItem = ({ icon, label, value, iconColor = "#6B7280", bgColor = "bg-gray-50" }: any) => (
     <View className={`${bgColor} rounded-xl p-4 mb-4 border border-gray-200`}>
@@ -72,11 +104,11 @@ export default function Configuracion() {
               <Feather name="user" size={40} color="black" />
             </View>
             <Text className="font-ibm-condensed-bold text-2xl text-gray-800">
-              Fernando A. Vázquez M.
+              {userData?.nombre || "Cargando..."}
             </Text>
             <View className="bg-green-100 px-3 py-1 rounded-full mt-2">
               <Text className="font-ibm-devanagari-bold text-sm text-green-700">
-                Administrador
+                {userData?.rol || "Cargando..."}
               </Text>
             </View>
           </View>
@@ -93,14 +125,14 @@ export default function Configuracion() {
             <ProfileItem
               icon={<FontAwesome5 name="user-secret" size={24} color="#3B82F6" />}
               label="Rol en el Sistema"
-              value="Administrador"
+              value={userData?.rol || "Cargando..."}
               bgColor="bg-blue-50"
             />
 
             <ProfileItem
               icon={<Entypo name="email" size={24} color="#8B5CF6" />}
               label="Correo Electrónico"
-              value="fernandovazquez.favm@gmail.com"
+              value={userData?.email || "Cargando..."}
               bgColor="bg-purple-50"
             />
           </View>

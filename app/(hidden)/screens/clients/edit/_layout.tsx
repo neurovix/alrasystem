@@ -3,14 +3,11 @@ import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React from "react";
 
-export default function ClientsLayout() {
+export default function ClientEditLayout() {
   return (
     <ThemeProvider value={DefaultTheme}>
       <Stack>
-        <Stack.Screen name="listClient" options={{ headerShown: false }} />
-        <Stack.Screen name="newClient" options={{ headerShown: false }} />
         <Stack.Screen name="[id]" options={{ headerShown: false }} />
-        <Stack.Screen name="edit" options={{ headerShown: false }} />
       </Stack>
       <StatusBar style="auto" />
     </ThemeProvider>

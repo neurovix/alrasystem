@@ -22,7 +22,7 @@ export default function SignIn() {
   const router = useRouter();
 
   const [nombre, setNombre] = useState<string>("");
-  const [role, setRole] = useState("operador");
+  const [role, setRole] = useState("Operador");
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
 
@@ -41,7 +41,7 @@ export default function SignIn() {
       setLoading(true);
       setError(null);
 
-      const { error: signUpError } = await supabase.auth.signUp({
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email: data.Email,
         password: data.Password,
         options: {
@@ -54,6 +54,30 @@ export default function SignIn() {
 
       if (signUpError) {
         throw signUpError;
+      }
+
+      const userID = signUpData.user?.id;
+
+      console.log(userID);
+
+      if (userID) {
+        const { data: insertData, error: insertError } = await supabase
+          .from("usuarios")
+          .insert([
+            {
+              id_usuario: userID,
+              nombre: data.Nombre,
+              rol: data.Rol,
+            },
+          ])
+          .select();
+
+          console.log(data);
+
+        if (insertError) {
+          console.log(insertError);
+          throw insertError;
+        }
       }
 
       const { error: loginError } = await supabase.auth.signInWithPassword({
@@ -143,10 +167,10 @@ export default function SignIn() {
                         }}
                         mode="dropdown"
                       >
-                        <Picker.Item label="Operador" value="operador" />
+                        <Picker.Item label="Operador" value="Operador" />
                         <Picker.Item
                           label="Administrador"
-                          value="administrador"
+                          value="Administrador"
                         />
                       </Picker>
                     </View>

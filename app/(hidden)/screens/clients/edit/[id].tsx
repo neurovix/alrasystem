@@ -1,7 +1,10 @@
+import { supabase } from '@/lib/supabase';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
+import { useEffect, useState } from 'react';
 import {
+  Alert,
   Button,
   ScrollView,
   Text,
@@ -12,6 +15,59 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function ClientInformation() {
+  const { id } = useLocalSearchParams();
+
+  const [clientName, setClientName] = useState<string>("");
+  const [clientCompany, setClientCompany] = useState<string>("");
+
+  useEffect(() => {
+    const fetchClientInformation = async () => {
+      const { data: clientInformation, error: clientError } = await supabase.from("clientes").select("id_cliente,nombre_cliente,empresa").eq("id_cliente", id);
+
+      if (clientError) {
+        Alert.alert("Ha habido problema al mostrar la informacion del cliente, favor de intentar mas tarde");
+        throw clientError;
+      }
+
+      if (clientInformation && clientInformation.length > 0) {
+        setClientName(clientInformation[0].nombre_cliente);
+        setClientCompany(clientInformation[0].empresa)
+      }
+    };
+
+    fetchClientInformation();
+  }, [id]);
+
+  const updateClientInformation = async () => {
+    const { data: clientUpdate, error: clientUpdateError } = await supabase.from("clientes").update({
+      nombre_cliente: clientName,
+      empresa: clientCompany,
+    }).eq("id_cliente", id);
+
+    if (clientUpdateError) {
+      Alert.alert("Ha ocurrido algun error, favor de intentar mas tarde");
+      throw clientUpdateError;
+    }
+
+    Alert.alert(
+      "Cliente actualizado exitosamente"
+    );
+
+    router.back();
+  };
+
+  const deleteClient = async () => {
+    const { data: clientInfo, error: clientError } = await supabase.from("clientes").delete().eq("id_cliente", id);
+
+    if (clientError) {
+      throw clientError;
+    }
+
+    Alert.alert("Cliente borrado exitosamente");
+
+    router.back();
+  }
+
   return (
     <SafeAreaView className="bg-green-600 flex-1">
       <View className="flex flex-row items-center px-3">
@@ -34,7 +90,9 @@ export default function ClientInformation() {
           <Text className='font-ibm-condensed-bold text-xl'>Nombre de cliente</Text>
           <View className='border-2 border-gray-600 rounded-xl px-3 py-1 mt-2'>
             <TextInput
-              placeholder='Ingresa el nombre del cliente'
+              value={clientName}
+              placeholder="Cargando..."
+              onChangeText={setClientName}
             />
           </View>
         </View>
@@ -42,7 +100,9 @@ export default function ClientInformation() {
           <Text className='text-xl font-ibm-condensed-bold'>Nombre de empresa</Text>
           <View className='border-2 border-gray-600 rounded-xl px-3 py-1 mt-2'>
             <TextInput
-              placeholder='Ingresa el nombre de la empresa'
+              value={clientCompany}
+              placeholder="Cargando..."
+              onChangeText={setClientCompany}
             />
           </View>
         </View>
@@ -50,12 +110,14 @@ export default function ClientInformation() {
           <Button
             color={"#16a34a"}
             title="Guardar"
+            onPress={updateClientInformation}
           />
         </View>
         <View className='mt-5'>
           <Button
             color={"#dc2626"}
             title="Eliminar cliente"
+            onPress={deleteClient}
           />
         </View>
       </ScrollView>

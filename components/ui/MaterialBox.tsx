@@ -1,8 +1,25 @@
+import { supabase } from '@/lib/supabase';
 import AntDesign from '@expo/vector-icons/AntDesign';
-import { Text, TouchableOpacity, View } from "react-native";
+import { router } from 'expo-router';
+import { Alert, Text, TouchableOpacity, View } from "react-native";
 
 export default function MaterialBox({ id, nombre }: any) {
-  const deleteMaterial = (id: number) => {};
+  const deleteMaterial = async (id: string | number) => {
+    const { data: materialData, error: materialError } = await supabase
+      .from("materiales")
+      .delete()
+      .eq("id_material", id);
+
+    if (materialError) {
+      Alert.alert("Hubo algún problema al borrar el material, favor de intentar más tarde");
+      return;
+    }
+
+    Alert.alert("Material borrado exitosamente");
+    // Opcional: refrescar lista o navegar
+    router.navigate("/(tabs)/(root)");
+  };
+
 
   return (
     <TouchableOpacity className="flex my-2 flex-row py-3 px-4 w-full items-center border-2 border-gray-500 rounded-xl shadow-slate-600">

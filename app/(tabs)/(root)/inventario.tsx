@@ -1,36 +1,55 @@
 import InventoryBox from "@/components/ui/InventoryBox";
+import { supabase } from "@/lib/supabase";
 import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { router } from "expo-router";
-import { useState } from "react";
-import { Dimensions, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { useEffect, useState } from "react";
+import { Alert, Dimensions, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const { width } = Dimensions.get('window');
 
 export default function Inventario() {
-  const [viewMode, setViewMode] = useState('list'); // 'list' or 'chart'
-  
-  const data = [
-    { id: 1, name: "Plastico PVC", quantity: "124700", color: "#EF4444" },
-    { id: 2, name: "Plastico PP", quantity: "15002457", color: "#3B82F6" },
-    { id: 3, name: "Plastico PET", quantity: "12457500", color: "#10B981" },
-    { id: 4, name: "Plastico HDPE", quantity: "15024570", color: "#F59E0B" },
-    { id: 5, name: "Plastico Naylon", quantity: "1565400", color: "#8B5CF6" },
-    { id: 6, name: "Plastico PPP", quantity: "150560", color: "#EC4899" },
-    { id: 7, name: "Plastico Scrap", quantity: "1502450", color: "#6B7280" },
-    { id: 8, name: "Plastico PBC", quantity: "150034", color: "#14B8A6" },
-    { id: 9, name: "Plastico Polipropeno", quantity: "150340", color: "#F97316" },
-    { id: 10, name: "Plastico HDPE Negro", quantity: "140900", color: "#1F2937" },
-  ];
+  const [viewMode, setViewMode] = useState('list');
 
-  // Preparar datos para la gráfica
-  const maxQuantity = Math.max(...data.map(item => parseInt(item.quantity)));
-  const chartData = data.map(item => ({
+  const [materials, setMaterials] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchMaterials = async () => {
+      const { data: materialData, error: materialError } = await supabase
+        .from("materiales")
+        .select("id_material, nombre_material, cantidad_disponible_kg");
+
+      if (materialError) {
+        Alert.alert("Hubo algún error al cargar los materiales");
+        return;
+      }
+
+      if (materialData) {
+        const colors = ["#EF4444", "#3B82F6", "#10B981", "#F59E0B", "#8B5CF6", "#EC4899", "#6B7280", "#14B8A6", "#F97316", "#1F2937"];
+        const dataWithColors = materialData.map((item, index) => ({
+          id: item.id_material,
+          name: item.nombre_material,
+          quantity: item.cantidad_disponible_kg,
+          color: colors[index % colors.length],
+        }));
+
+        setMaterials(dataWithColors);
+      }
+    };
+
+    fetchMaterials();
+  }, [materials]);
+
+
+  const maxQuantity = Math.max(...materials.map(item => parseInt(item.quantity)));
+
+  const chartData = materials.map(item => ({
     ...item,
     quantityNum: parseInt(item.quantity),
     percentage: (parseInt(item.quantity) / maxQuantity) * 100
   })).sort((a, b) => b.quantityNum - a.quantityNum);
+
 
   const formatNumber = (num: number) => {
     if (num >= 1000000) {
@@ -46,16 +65,19 @@ export default function Inventario() {
       <Text className="font-ibm-condensed-bold text-xl text-gray-800 mb-4">
         Distribución de Materiales (kg)
       </Text>
-      
+
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-        <View className="flex-row items-end h-80 px-2" style={{ width: Math.max(width - 40, data.length * 60) }}>
+        <View
+          className="flex-row items-end h-80 px-2"
+          style={{ width: Math.max(width - 40, chartData.length * 60) }} // <- aquí
+        >
           {chartData.map((item, index) => (
             <View key={item.id} className="items-center mx-1" style={{ width: 50 }}>
               {/* Valor en la parte superior */}
               <Text className="text-xs font-medium text-gray-600 mb-2 transform -rotate-45 w-16 text-center">
                 {formatNumber(item.quantityNum)}
               </Text>
-              
+
               {/* Barra */}
               <View
                 className="w-8 rounded-t-md relative"
@@ -65,19 +87,19 @@ export default function Inventario() {
                 }}
               >
                 {/* Efecto de brillo */}
-                <View 
+                <View
                   className="absolute top-0 left-0 w-2 rounded-tl-md opacity-30"
-                  style={{ 
+                  style={{
                     height: '100%',
                     backgroundColor: 'white'
                   }}
                 />
               </View>
-              
+
               {/* Etiqueta del material */}
-              <Text 
+              <Text
                 className="text-xs font-medium text-gray-700 mt-2 text-center"
-                style={{ 
+                style={{
                   transform: [{ rotate: '-45deg' }],
                   width: 60,
                   height: 40
@@ -98,7 +120,7 @@ export default function Inventario() {
         </Text>
         {chartData.slice(0, 3).map((item, index) => (
           <View key={item.id} className="flex-row items-center mb-2">
-            <View 
+            <View
               className="w-4 h-4 rounded mr-3"
               style={{ backgroundColor: item.color }}
             />
@@ -115,28 +137,24 @@ export default function Inventario() {
   );
 
   const StatsCards = () => {
-    const totalInventory = data.reduce((sum, item) => sum + parseInt(item.quantity), 0);
-    const avgInventory = totalInventory / data.length;
-    const topMaterial = chartData[0];
+    if (!materials || materials.length === 0) return null; // prevenir errores si aún no cargan
+
+    const totalInventory = materials.reduce((sum, item) => sum + parseInt(item.quantity), 0);
+    const avgInventory = totalInventory / materials.length;
+    const topMaterial = chartData[0]; // chartData ya está calculado más arriba
 
     return (
       <View className="flex-row mb-4">
         <View className="bg-blue-500 rounded-xl p-4 flex-1 mr-2">
-          <Text className="text-white font-ibm-condensed-bold text-lg">
-            Total
-          </Text>
+          <Text className="text-white font-ibm-condensed-bold text-lg">Total</Text>
           <Text className="text-white text-2xl font-bold">
             {formatNumber(totalInventory)}
           </Text>
-          <Text className="text-blue-100 text-sm">
-            kg en inventario
-          </Text>
+          <Text className="text-blue-100 text-sm">kg en inventario</Text>
         </View>
-        
+
         <View className="bg-green-500 rounded-xl p-4 flex-1 ml-2">
-          <Text className="text-white font-ibm-condensed-bold text-lg">
-            Mayor Stock
-          </Text>
+          <Text className="text-white font-ibm-condensed-bold text-lg">Mayor Stock</Text>
           <Text className="text-white text-lg font-bold" numberOfLines={1}>
             {topMaterial.name.replace('Plastico ', '')}
           </Text>
@@ -147,6 +165,7 @@ export default function Inventario() {
       </View>
     );
   };
+
 
   return (
     <SafeAreaView className="bg-green-600 flex-1">
@@ -160,20 +179,20 @@ export default function Inventario() {
             onPress={() => setViewMode('list')}
             className={`px-3 py-2 rounded-md ${viewMode === 'list' ? 'bg-white' : ''}`}
           >
-            <MaterialIcons 
-              name="list" 
-              size={20} 
-              color={viewMode === 'list' ? '#059669' : 'white'} 
+            <MaterialIcons
+              name="list"
+              size={20}
+              color={viewMode === 'list' ? '#059669' : 'white'}
             />
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => setViewMode('chart')}
             className={`px-3 py-2 rounded-md ml-1 ${viewMode === 'chart' ? 'bg-white' : ''}`}
           >
-            <MaterialIcons 
-              name="bar-chart" 
-              size={20} 
-              color={viewMode === 'chart' ? '#059669' : 'white'} 
+            <MaterialIcons
+              name="bar-chart"
+              size={20}
+              color={viewMode === 'chart' ? '#059669' : 'white'}
             />
           </TouchableOpacity>
         </View>
@@ -184,26 +203,28 @@ export default function Inventario() {
         contentContainerStyle={{ paddingBottom: 100 }}
         showsVerticalScrollIndicator={false}
       >
-        {viewMode === 'chart' ? (
+        {viewMode === 'list' ? (
+          materials.map((item) => (
+            <InventoryBox
+              key={item.id}
+              id={item.id}
+              name={item.name}
+              quantity={item.quantity}
+              color={item.color}
+            />
+          ))
+        ) : (
           <>
             <StatsCards />
             <BarChart />
           </>
-        ) : (
-          data.map((item) => (
-            <InventoryBox 
-              key={item.id}
-              id={item.id} 
-              name={item.name} 
-              quantity={item.quantity} 
-            />
-          ))
         )}
-        
+
+
         {/* Botón flotante */}
         <View className="w-full flex items-end mt-3">
-          <TouchableOpacity 
-            onPress={() => router.navigate("/screens/inventario/newInventario")} 
+          <TouchableOpacity
+            onPress={() => router.navigate("/screens/inventario/newInventario")}
             className="bg-green-600 px-8 py-7 rounded-full shadow-lg"
             activeOpacity={0.8}
           >

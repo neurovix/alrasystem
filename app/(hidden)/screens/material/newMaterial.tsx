@@ -1,7 +1,10 @@
+import { supabase } from '@/lib/supabase';
 import AntDesign from '@expo/vector-icons/AntDesign';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from "expo-router";
+import { useState } from 'react';
 import {
+  Alert,
   Button,
   ScrollView,
   Text,
@@ -12,6 +15,24 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function NewMaterial() {
+  const [materialName, setMaterialName] = useState<string | any>("");
+
+  const insertMaterial = async () => {
+    const { data: materialData, error: materialError } = await supabase.from("materiales").insert({
+      nombre_material: materialName,
+    });
+
+    if (materialError) {
+      Alert.alert("Hubo algun problema al registrar el nuevo material");
+      return
+    }
+
+    if (!materialError) {
+      Alert.alert("Material registrado exitosamente");
+      setMaterialName("");
+    }
+  };
+
   return (
     <SafeAreaView className="bg-green-600 flex-1">
       <View className="flex flex-row items-center px-3">
@@ -35,6 +56,7 @@ export default function NewMaterial() {
           <View className='border-2 border-gray-600 rounded-xl px-3 py-1 mt-2'>
             <TextInput
               placeholder='Ingresa el nombre del material'
+              onChangeText={(text) => setMaterialName(text)}
             />
           </View>
         </View>
@@ -42,6 +64,7 @@ export default function NewMaterial() {
           <Button
             color={"#16a34a"}
             title="Guardar"
+            onPress={insertMaterial}
           />
         </View>
       </ScrollView>
