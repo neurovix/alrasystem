@@ -3,6 +3,7 @@ import { supabase } from "@/lib/supabase";
 import { Picker } from "@react-native-picker/picker";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import CheckBox from "expo-checkbox";
+import * as FileSystem from 'expo-file-system/legacy';
 import { router } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -27,6 +28,7 @@ export default function Add() {
   const [clientes, setClientes] = useState<any[]>([]);
   const [selectedMaterial, setSelectedMaterial] = useState("");
   const [selectedCliente, setSelectedCliente] = useState("");
+  const [peso, setPeso] = useState<number | any>(0);
 
   const cameraRef = useRef<CameraView>(null);
 
@@ -37,7 +39,10 @@ export default function Add() {
 
   const [userId, setUserId] = useState<any>(null);
 
-  const [photos, setPhotos] = useState<(string | null)[]>(Array(6).fill(null));
+  const [photos, setPhotos] = useState<(string)[]>(Array(6).fill(null));
+
+  console.log(photos);
+
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
 
   const takePicture = async () => {
@@ -59,7 +64,6 @@ export default function Add() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // 1️⃣ Obtener último id_lote
         const { data: lotesData, error: lotesError } = await supabase
           .from("lotes")
           .select("id_lote")
@@ -71,37 +75,24 @@ export default function Add() {
         } else if (lotesData && lotesData.length > 0) {
           setLastLoteId(lotesData[0].id_lote + 1);
         } else {
-          setLastLoteId(1); // si no hay lotes aún
+          setLastLoteId(1);
         }
 
-        // 2️⃣ Obtener materiales
-        const { data: materialesData, error: materialesError } = await supabase
+        const { data: materialesData } = await supabase
           .from("materiales")
           .select("id_material, nombre_material");
 
-        if (materialesError) {
-          console.log("❌ Error obteniendo materiales:", materialesError);
-        } else {
-          setMateriales(materialesData || []);
-        }
+        setMateriales(materialesData || []);
 
-        // 3️⃣ Obtener clientes
-        const { data: clientesData, error: clientesError } = await supabase
+        const { data: clientesData } = await supabase
           .from("clientes")
           .select("id_cliente, nombre_cliente, empresa");
 
-        if (clientesError) {
-          console.log("❌ Error obteniendo clientes:", clientesError);
-        } else {
-          setClientes(clientesData || []);
-        }
+        setClientes(clientesData || []);
 
         const { data, error } = await supabase.auth.getUser();
 
-        if (error) {
-          console.log(error);
-          throw error;
-        }
+        if (error) throw error;
 
         setUserId(data.user.id);
 
@@ -113,6 +104,49 @@ export default function Add() {
     fetchData();
   }, []);
 
+  const reFetch = async () => {
+    try {
+      // Limpiar campos
+      setSelectedMaterial("");
+      setSelectedCliente("");
+      setPeso(0);
+      setCheckedVenta(false);
+      setCheckedMaquila(false);
+      setPhotos(Array(6).fill(null));
+      setActiveIndex(null);
+
+      // Obtener el último id_lote de la base de datos
+      const { data: lotesData, error: lotesError } = await supabase
+        .from("lotes")
+        .select("id_lote")
+        .order("id_lote", { ascending: false })
+        .limit(1);
+
+      if (lotesError) {
+        console.log("❌ Error obteniendo último lote:", lotesError);
+        setLastLoteId(1); // fallback
+      } else if (lotesData && lotesData.length > 0) {
+        setLastLoteId(lotesData[0].id_lote + 1);
+      } else {
+        setLastLoteId(1);
+      }
+
+    } catch (err) {
+      console.log("❌ Error en reFetch:", err);
+      setLastLoteId(1);
+    }
+  };
+
+
+  function base64ToArrayBuffer(base64: any) {
+    const binaryString = atob(base64);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+    return bytes.buffer;
+  }
+
   const handleSave = async () => {
     try {
       if (!lastLoteId) return;
@@ -121,13 +155,14 @@ export default function Add() {
       const { error: insertError } = await supabase.from("lotes").insert({
         id_lote: lastLoteId,
         nombre_lote: `LT-${lastLoteId}`,
-        id_material: selectedMaterial, // material seleccionado
-        peso_entrada_kg: 100, // valor real del input
+        id_material: selectedMaterial,
+        peso_entrada_kg: peso,
         fecha_recibido: new Date().toISOString(),
-        id_cliente: selectedCliente, // cliente seleccionado
+        id_cliente: selectedCliente,
         tipo_proceso: checkedVenta ? "Venta" : checkedMaquila ? "Maquila" : "Venta",
         estado_actual: "Recibido",
-        created_by: userId, // id_usuario logueado
+        peso_final_kg: peso,
+        created_by: userId,
       });
 
       if (insertError) {
@@ -135,15 +170,16 @@ export default function Add() {
         return;
       }
 
-      // 2️⃣ Crear proceso inicial "Recibido"
       const { data: procesoData, error: procesoError } = await supabase
         .from("procesos")
         .insert({
           id_lote: lastLoteId,
           tipo_proceso: "Recibido",
+          peso_salida_kg: peso,
+          merma_kg: null,
           fecha_proceso: new Date().toISOString(),
-          estado: "En Progreso",
-          observaciones: "Fotos de recibido",
+          id_cliente: selectedCliente,
+          created_by: userId,
         })
         .select("id_proceso")
         .single();
@@ -155,22 +191,47 @@ export default function Add() {
 
       const idProcesoRecibido = procesoData.id_proceso;
 
+      const { error: historialError } = await supabase.from("inventario_movimientos")
+        .insert({
+          id_material: selectedMaterial,
+          cantidad_kg: peso,
+          tipo_movimiento: "Entrada",
+          fecha: new Date().toISOString(),
+          id_lote: lastLoteId,
+          created_by: userId,
+        })
+
+      if (historialError) {
+        console.log("Error insertando los movimientos en el historial ", historialError)
+        return;
+      }
+
       // 3️⃣ Subir fotos + insertar en tabla fotos
       for (let i = 0; i < photos.length; i++) {
-        if (photos[i]) {
-          const response = await fetch(photos[i]!);
-          const blob = await response.blob();
+        if (!photos[i]) continue;
 
-          const fileExt = photos[i]!.split(".").pop() || "jpg";
+        try {
+          // Leer archivo como Base64 usando la API legacy
+          const base64 = await FileSystem.readAsStringAsync(photos[i], {
+            encoding: FileSystem.EncodingType.Base64,
+          });
+
+          // Convertir Base64 a ArrayBuffer para Supabase
+          const arrayBuffer = Uint8Array.from(
+            atob(base64),
+            c => c.charCodeAt(0)
+          );
+
+          const fileExt = photos[i].split(".").pop() || "jpg";
           const filePath = `lotes/${lastLoteId}/${idProcesoRecibido}/foto_${i + 1}.${fileExt}`;
 
-          // 👉 Subir al Storage
+          // Subir al Storage
           const { error: uploadError } = await supabase.storage
             .from("lotes")
-            .upload(filePath, blob, {
+            .upload(filePath, arrayBuffer, {
               cacheControl: "3600",
               upsert: true,
-              contentType: blob.type,
+              contentType: "image/jpeg",
             });
 
           if (uploadError) {
@@ -178,27 +239,31 @@ export default function Add() {
             continue;
           }
 
-          // 👉 Obtener la URL pública
+          // Obtener URL pública
           const { data: publicUrlData } = supabase.storage
             .from("lotes")
             .getPublicUrl(filePath);
 
           const publicUrl = publicUrlData.publicUrl;
 
-          // 👉 Insertar en la tabla fotos
+          // Insertar en tabla fotos
           const { error: insertFotoError } = await supabase.from("fotos").insert({
             id_lote: lastLoteId,
             id_proceso: idProcesoRecibido,
             url_foto: publicUrl,
           });
 
-          if (insertFotoError) {
-            console.log("❌ Error insertando foto en tabla", i + 1, insertFotoError);
-          }
+          if (insertFotoError) console.log("❌ Error insertando foto", i + 1, insertFotoError);
+
+        } catch (err) {
+          console.log("❌ Error procesando archivo", i + 1, err);
         }
       }
 
-      Alert.alert("✅ Lote, proceso Recibido y fotos guardados correctamente");
+
+
+      Alert.alert("✅ Lote, proceso Recibido y fotos guardadas correctamente");
+
       router.push("/(tabs)/(root)");
     } catch (err) {
       console.log("❌ Error inesperado:", err);
@@ -264,7 +329,6 @@ export default function Add() {
             </Picker>
           </View>
 
-
           <Text className="mt-3 pb-1 text-2xl font-ibm-devanagari-bold">
             Peso de entrada
           </Text>
@@ -274,6 +338,7 @@ export default function Add() {
               className="border-2 w-full py-4 px-2 border-black rounded-lg"
               placeholder="Ingresa el peso"
               keyboardType="number-pad"
+              onChangeText={(text) => setPeso(text)}
             />
           </View>
 
@@ -353,7 +418,7 @@ export default function Add() {
           <View className="flex flex-row w-full mt-5 justify-center">
             <TouchableOpacity
               className="w-1/2 items-center"
-              onPress={() => router.navigate("/(tabs)/(root)")}
+              onPress={reFetch}
             >
               <View className="w-[95%] flex items-center border-2 py-2 rounded-xl border-black">
                 <Text className="font-ibm-condensed-bold text-2xl">

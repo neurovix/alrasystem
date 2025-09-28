@@ -12,7 +12,7 @@ CREATE TYPE tipo_proceso_lote AS ENUM ('Venta', 'Maquila');
 CREATE TYPE estado_lote AS ENUM ('Recibido', 'Molienda', 'Peletizado', 'Retorno', 'Venta', 'Finalizado');
 
 -- Procesos posibles
-CREATE TYPE tipo_proceso AS ENUM ('Molienda', 'Peletizado', 'Retorno', 'Venta');
+CREATE TYPE tipo_proceso AS ENUM ('Molienda', 'Peletizado', 'Retorno', 'Venta', 'Recibido');
 
 -- Tipo de movimiento de inventario
 CREATE TYPE tipo_movimiento AS ENUM ('Entrada', 'Salida', 'Ajuste');
