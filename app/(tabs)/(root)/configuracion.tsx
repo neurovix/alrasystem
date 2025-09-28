@@ -118,7 +118,7 @@ export default function Configuracion() {
             <ProfileItem
               icon={<FontAwesome name="user" size={24} color="#10B981" />}
               label="Nombre Completo"
-              value="Fernando A. Vázquez M."
+              value={userData?.nombre || "Cargando..."}
               bgColor="bg-green-50"
             />
 

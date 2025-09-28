@@ -1,5 +1,4 @@
 import icons from "@/constants/icons";
-import { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
 import { Picker } from "@react-native-picker/picker";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { router } from "expo-router";
@@ -17,12 +16,9 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function Peletizado() {
-    const [date, setDate] = useState(new Date());
-
     const [permission, requestPermission] = useCameraPermissions();
 
     const [merma, setMerma] = useState<number | any>(0);
-    const [materialType, setMaterialType] = useState<string | any>("kg");
 
     const cameraRef = useRef<CameraView>(null);
 
@@ -42,23 +38,6 @@ export default function Peletizado() {
             setShowCamera(false);
             setActiveIndex(null);
         }
-    };
-
-    const onChange = (_: any, selectedDate: any) => {
-        setDate(selectedDate);
-    };
-
-    const showMode = (currentMode: any) => {
-        DateTimePickerAndroid.open({
-            value: date,
-            onChange,
-            mode: currentMode,
-            is24Hour: true,
-        });
-    };
-
-    const showDatepicker = () => {
-        showMode("date");
     };
 
     return (
@@ -109,36 +88,21 @@ export default function Peletizado() {
                     <Text className="mt-3 pb-1 text-2xl font-ibm-devanagari-bold">
                         Peso de salida
                     </Text>
+
                     <View className="flex flex-row w-full pb-5">
                         <TextInput
-                            className="border-2 w-7/12 border-black rounded-lg"
+                            className="border-2 w-full py-4 px-2 border-black rounded-lg"
                             placeholder="Ingresa el peso"
                             keyboardType="number-pad"
                         />
-                        <View className="w-1/12" />
-                        <View className="border-2 w-4/12 border-black rounded-lg">
-                            <Picker
-                                selectedValue={materialType}
-                                onValueChange={(itemValue) => setMaterialType(itemValue)}
-                            >
-                                <Picker.Item label="kg" value={0} />
-                                <Picker.Item label="ton" value={1} />
-                            </Picker>
-                        </View>
                     </View>
 
                     <View className="mb-4 flex flex-row">
                         <Text className="font-ibm-devanagari-bold">Merma: </Text>
-                        <Text className="font-ibm-devanagari-regular text-red-600">{merma} {materialType}</Text>
+                        <Text className="font-ibm-devanagari-regular text-red-600">{merma} kg</Text>
                     </View>
 
-                    <Button
-                        color={"#16a34a"}
-                        onPress={showDatepicker}
-                        title="Fecha de peletizado"
-                    />
-
-                    <Text className="mt-5 text-2xl font-ibm-devanagari-bold">Fotos</Text>
+                    <Text className="text-2xl font-ibm-devanagari-bold">Fotos</Text>
                     <View className="flex flex-row flex-wrap w-full mt-3 justify-center">
                         {photos.map((uri, index) => (
                             <TouchableOpacity

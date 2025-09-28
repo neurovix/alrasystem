@@ -1,11 +1,12 @@
 import icons from "@/constants/icons";
-import DateTimePicker, { DateTimePickerAndroid } from "@react-native-community/datetimepicker";
+import { supabase } from "@/lib/supabase";
 import { Picker } from "@react-native-picker/picker";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import CheckBox from "expo-checkbox";
 import { router } from "expo-router";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
+  Alert,
   Button,
   Image,
   Platform,
@@ -19,19 +20,22 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function Add() {
-  const idLote = "LT-1";
-
-  const [date, setDate] = useState(new Date());
-
   const [permission, requestPermission] = useCameraPermissions();
+
+  const [lastLoteId, setLastLoteId] = useState<number | null>(null);
+  const [materiales, setMateriales] = useState<any[]>([]);
+  const [clientes, setClientes] = useState<any[]>([]);
+  const [selectedMaterial, setSelectedMaterial] = useState("");
+  const [selectedCliente, setSelectedCliente] = useState("");
 
   const cameraRef = useRef<CameraView>(null);
 
   const [showCamera, setShowCamera] = useState(false);
-  const [showPicker, setShowPicker] = useState(false); // para iOS
 
   const [checkedVenta, setCheckedVenta] = useState<boolean>(false);
   const [checkedMaquila, setCheckedMaquila] = useState<boolean>(false);
+
+  const [userId, setUserId] = useState<any>(null);
 
   const [photos, setPhotos] = useState<(string | null)[]>(Array(6).fill(null));
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
@@ -52,24 +56,152 @@ export default function Add() {
   const toggleVenta = () => setCheckedVenta(!checkedVenta);
   const toggleMaquila = () => setCheckedMaquila(!checkedMaquila);
 
-  const onChange = (_: any, selectedDate: any) => {
-    setDate(selectedDate);
-  };
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // 1️⃣ Obtener último id_lote
+        const { data: lotesData, error: lotesError } = await supabase
+          .from("lotes")
+          .select("id_lote")
+          .order("id_lote", { ascending: false })
+          .limit(1);
 
-  const showMode = (currentMode: any) => {
-    DateTimePickerAndroid.open({
-      value: date,
-      onChange,
-      mode: currentMode,
-      is24Hour: true,
-    });
-  };
+        if (lotesError) {
+          console.log("❌ Error obteniendo último lote:", lotesError);
+        } else if (lotesData && lotesData.length > 0) {
+          setLastLoteId(lotesData[0].id_lote + 1);
+        } else {
+          setLastLoteId(1); // si no hay lotes aún
+        }
 
-  const showDatepicker = () => {
-    if (Platform.OS === "android") {
-      showMode("date");
-    } else {
-      setShowPicker(true);
+        // 2️⃣ Obtener materiales
+        const { data: materialesData, error: materialesError } = await supabase
+          .from("materiales")
+          .select("id_material, nombre_material");
+
+        if (materialesError) {
+          console.log("❌ Error obteniendo materiales:", materialesError);
+        } else {
+          setMateriales(materialesData || []);
+        }
+
+        // 3️⃣ Obtener clientes
+        const { data: clientesData, error: clientesError } = await supabase
+          .from("clientes")
+          .select("id_cliente, nombre_cliente, empresa");
+
+        if (clientesError) {
+          console.log("❌ Error obteniendo clientes:", clientesError);
+        } else {
+          setClientes(clientesData || []);
+        }
+
+        const { data, error } = await supabase.auth.getUser();
+
+        if (error) {
+          console.log(error);
+          throw error;
+        }
+
+        setUserId(data.user.id);
+
+      } catch (err) {
+        console.log("❌ Error inesperado:", err);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  const handleSave = async () => {
+    try {
+      if (!lastLoteId) return;
+
+      // 1️⃣ Insertar lote en BD
+      const { error: insertError } = await supabase.from("lotes").insert({
+        id_lote: lastLoteId,
+        nombre_lote: `LT-${lastLoteId}`,
+        id_material: selectedMaterial, // material seleccionado
+        peso_entrada_kg: 100, // valor real del input
+        fecha_recibido: new Date().toISOString(),
+        id_cliente: selectedCliente, // cliente seleccionado
+        tipo_proceso: checkedVenta ? "Venta" : checkedMaquila ? "Maquila" : "Venta",
+        estado_actual: "Recibido",
+        created_by: userId, // id_usuario logueado
+      });
+
+      if (insertError) {
+        console.log("❌ Error insertando lote", insertError);
+        return;
+      }
+
+      // 2️⃣ Crear proceso inicial "Recibido"
+      const { data: procesoData, error: procesoError } = await supabase
+        .from("procesos")
+        .insert({
+          id_lote: lastLoteId,
+          tipo_proceso: "Recibido",
+          fecha_proceso: new Date().toISOString(),
+          estado: "En Progreso",
+          observaciones: "Fotos de recibido",
+        })
+        .select("id_proceso")
+        .single();
+
+      if (procesoError) {
+        console.log("❌ Error insertando proceso Recibido", procesoError);
+        return;
+      }
+
+      const idProcesoRecibido = procesoData.id_proceso;
+
+      // 3️⃣ Subir fotos + insertar en tabla fotos
+      for (let i = 0; i < photos.length; i++) {
+        if (photos[i]) {
+          const response = await fetch(photos[i]!);
+          const blob = await response.blob();
+
+          const fileExt = photos[i]!.split(".").pop() || "jpg";
+          const filePath = `lotes/${lastLoteId}/${idProcesoRecibido}/foto_${i + 1}.${fileExt}`;
+
+          // 👉 Subir al Storage
+          const { error: uploadError } = await supabase.storage
+            .from("lotes")
+            .upload(filePath, blob, {
+              cacheControl: "3600",
+              upsert: true,
+              contentType: blob.type,
+            });
+
+          if (uploadError) {
+            console.log("❌ Error subiendo foto", i + 1, uploadError);
+            continue;
+          }
+
+          // 👉 Obtener la URL pública
+          const { data: publicUrlData } = supabase.storage
+            .from("lotes")
+            .getPublicUrl(filePath);
+
+          const publicUrl = publicUrlData.publicUrl;
+
+          // 👉 Insertar en la tabla fotos
+          const { error: insertFotoError } = await supabase.from("fotos").insert({
+            id_lote: lastLoteId,
+            id_proceso: idProcesoRecibido,
+            url_foto: publicUrl,
+          });
+
+          if (insertFotoError) {
+            console.log("❌ Error insertando foto en tabla", i + 1, insertFotoError);
+          }
+        }
+      }
+
+      Alert.alert("✅ Lote, proceso Recibido y fotos guardados correctamente");
+      router.push("/(tabs)/(root)");
+    } catch (err) {
+      console.log("❌ Error inesperado:", err);
     }
   };
 
@@ -111,68 +243,57 @@ export default function Add() {
         >
           <View className="flex flex-row justify-between">
             <Text className="text-2xl font-ibm-devanagari-bold">Detalles</Text>
-            <Text className="text-2xl">ID: {idLote}</Text>
+            <Text className="text-2xl">ID: {lastLoteId ? `LT-${lastLoteId}` : "Cargando..."}</Text>
           </View>
 
           <Text className="mt-5 text-2xl font-ibm-devanagari-bold">Tipo</Text>
           <View style={styles.pickerContainer}>
             <Picker
-              style={Platform.OS === 'ios' ? styles.pickerIOS : styles.picker}
+              selectedValue={selectedMaterial}
+              onValueChange={(itemValue) => setSelectedMaterial(itemValue)}
+              style={Platform.OS === "ios" ? styles.pickerIOS : styles.picker}
             >
-              <Picker.Item label="PET" value={0} />
-              <Picker.Item label="PP" value={1} />
-              <Picker.Item label="HDPE" value={2} />
+              <Picker.Item label="Selecciona un material" value="" />
+              {materiales.map((mat) => (
+                <Picker.Item
+                  key={mat.id_material}
+                  label={mat.nombre_material}
+                  value={mat.id_material}
+                />
+              ))}
             </Picker>
           </View>
+
 
           <Text className="mt-3 pb-1 text-2xl font-ibm-devanagari-bold">
             Peso de entrada
           </Text>
+
           <View className="flex flex-row w-full pb-5">
             <TextInput
-              className="border-2 w-7/12 border-black rounded-lg"
+              className="border-2 w-full py-4 px-2 border-black rounded-lg"
               placeholder="Ingresa el peso"
               keyboardType="number-pad"
             />
-            <View className="w-1/12" />
-            <View className="border-2 w-4/12 border-black rounded-lg">
-              <Picker>
-                <Picker.Item label="kg" value={0} />
-                <Picker.Item label="ton" value={1} />
-              </Picker>
-            </View>
           </View>
 
-          <Button
-            color={"#16a34a"}
-            onPress={showDatepicker}
-            title="Fecha de recibido"
-          />
-
-          {/* Picker para iOS */}
-          {Platform.OS === "ios" && showPicker && (
-            <DateTimePicker
-              value={date}
-              mode="date"
-              display="spinner" // o "default"
-              onChange={(event, selectedDate) => {
-                setShowPicker(false);
-                if (selectedDate) setDate(selectedDate);
-              }}
-            />
-          )}
-
-          <Text className="text-lg mt-2">
-            Fecha seleccionada: {date.toLocaleDateString()}
-          </Text>
-
-          <Text className="mt-5 text-2xl font-ibm-devanagari-bold">
+          <Text className="text-2xl font-ibm-devanagari-bold">
             Cliente
           </Text>
           <View className="border-2 border-black rounded-lg">
-            <Picker>
-              <Picker.Item label="Neurovix S. de R.L. de C.V." value={0} />
-              <Picker.Item label="Coca Cola S.A. de C.V." value={1} />
+            <Picker
+              selectedValue={selectedCliente}
+              onValueChange={(itemValue) => setSelectedCliente(itemValue)}
+              style={Platform.OS === "ios" ? styles.pickerIOS : styles.picker}
+            >
+              <Picker.Item label="Selecciona un cliente" value="" />
+              {clientes.map((cliente) => (
+                <Picker.Item
+                  key={cliente.id_cliente}
+                  label={cliente.nombre_cliente}
+                  value={cliente.id_cliente}
+                />
+              ))}
             </Picker>
           </View>
 
@@ -240,7 +361,7 @@ export default function Add() {
                 </Text>
               </View>
             </TouchableOpacity>
-            <TouchableOpacity className="w-1/2 items-center">
+            <TouchableOpacity className="w-1/2 items-center" onPress={handleSave}>
               <View className="w-[95%] flex items-center border-2 border-black bg-green-500 py-2 rounded-xl">
                 <Text className="text-2xl font-ibm-condensed-bold">
                   Guardar

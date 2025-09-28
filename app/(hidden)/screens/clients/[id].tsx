@@ -91,8 +91,8 @@ export default function ClientInformation() {
 
         {/* Renderizamos los lotes */}
         {loteData.map((item) => (
-          <View key={item.id_lote}>
-            <LoteBox id={item.id_lote} name={item.name} status={item.status} etapa={item.etapa} />
+          <View key={item.id}>
+            <LoteBox id={item.id} name={item.name} status={item.status} etapa={item.etapa} />
           </View>
         ))}
       </ScrollView>

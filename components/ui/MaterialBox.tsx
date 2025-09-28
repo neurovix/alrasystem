@@ -16,7 +16,7 @@ export default function MaterialBox({ id, nombre }: any) {
     }
 
     Alert.alert("Material borrado exitosamente");
-    // Opcional: refrescar lista o navegar
+    
     router.navigate("/(tabs)/(root)");
   };
 
