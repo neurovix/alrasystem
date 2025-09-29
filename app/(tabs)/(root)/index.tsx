@@ -1,5 +1,7 @@
 import icons from "@/constants/icons";
+import { supabase } from "@/lib/supabase"; // Adjust import path to your Supabase client setup
 import { router } from "expo-router";
+import { useEffect, useState } from "react";
 import { Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Circle, G, Path } from "react-native-svg";
@@ -27,14 +29,65 @@ function createPieSlice(
 }
 
 export default function Home() {
-  const dataLotes = [
-    { label: "En proceso", value: 45, color: "#eab308" }, // amarillo
-    { label: "Finalizados", value: 10, color: "#059669" }, // verde
-  ];
+  const [dataLotes, setDataLotes] = useState([{}]);
+  const [dataMerma, setDataMerma] = useState([{}]);
+  const [totalLotes, setTotalLotes] = useState(0);
+  const [totalMerma, setTotalMerma] = useState(0);
+  const [loading, setLoading] = useState(true);
 
-  const totalLotes = dataLotes.reduce((acc, item) => acc + item.value, 0);
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        // Fetch lotes status
+        const { data: lotesData, error: lotesError } = await supabase
+          .from("lotes")
+          .select("estado_actual");
+
+        if (lotesError) throw lotesError;
+
+        const lotesCount = lotesData.reduce(
+          (acc, lote) => {
+            acc[lote.estado_actual === "Finalizado" ? "finalizados" : "enProceso"]++;
+            return acc;
+          },
+          { enProceso: 0, finalizados: 0 }
+        );
+
+        setDataLotes([
+          { label: "En proceso", value: lotesCount.enProceso, color: "#eab308" },
+          { label: "Finalizados", value: lotesCount.finalizados, color: "#059669" },
+        ]);
+        setTotalLotes(lotesCount.enProceso + lotesCount.finalizados);
+
+        // Fetch merma data from procesos
+        const { data: procesosData, error: procError } = await supabase
+          .from("procesos")
+          .select("merma_kg, tipo_proceso");
+
+        if (procError) throw procError;
+
+        const mermaTotal = procesosData.reduce((acc, proc) => acc + (proc.merma_kg || 0), 0);
+        const mermaEnProceso = procesosData
+          .filter((proc) => ["Molienda", "Peletizado"].includes(proc.tipo_proceso))
+          .reduce((acc, proc) => acc + (proc.merma_kg || 0), 0);
+        const mermaFinalizada = mermaTotal - mermaEnProceso;
+
+        setDataMerma([
+          { label: "En proceso", value: mermaEnProceso, color: "#15803d" },
+          { label: "Finalizados", value: mermaFinalizada, color: "#b91c1c" },
+        ]);
+        setTotalMerma(mermaTotal);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchData();
+  }, []);
+
   let startAngleLote = 0;
-
   const slicesLote = dataLotes.map((item, index) => {
     const angle = (item.value / totalLotes) * 2 * Math.PI;
     const slice = createPieSlice(
@@ -49,15 +102,9 @@ export default function Home() {
     return <G key={index}>{slice}</G>;
   });
 
-  const dataMerma = [
-    { label: "En proceso", value: 40, color: "#15803d" }, // verde
-    { label: "Finalizados", value: 20, color: "#b91c1c" }, // rojo
-  ];
-
   let startAngleMerma = 0;
-
   const slicesMerma = dataMerma.map((item, index) => {
-    const angle = (item.value / totalLotes) * 2 * Math.PI;
+    const angle = (item.value / totalMerma) * 2 * Math.PI;
     const slice = createPieSlice(
       75,
       75,
@@ -70,10 +117,18 @@ export default function Home() {
     return <G key={index}>{slice}</G>;
   });
 
+  if (loading) {
+    return (
+      <SafeAreaView className="bg-green-600 flex-1 justify-center items-center">
+        <Text className="text-white text-xl">Cargando...</Text>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView className="bg-green-600">
       <Text className="text-3xl p-5 text-white font-ibm-condensed-bold">
-        Informacion semanal
+        Informacion general
       </Text>
       <ScrollView
         className="bg-white px-5 pt-2"
@@ -120,7 +175,7 @@ export default function Home() {
                 </Text>
               </View>
               <Text className="text-3xl font-ibm-devanagari-bold text-green-800">
-                45
+                {dataLotes.find((d) => d.label === "En proceso")?.value || 0}
               </Text>
               <Text className="text-green-600 text-xs">lotes activos</Text>
             </View>
@@ -132,41 +187,9 @@ export default function Home() {
                 </Text>
               </View>
               <Text className="text-3xl font-ibm-devanagari-bold text-emerald-800">
-                10
+                {dataLotes.find((d) => d.label === "Finalizados")?.value || 0}
               </Text>
               <Text className="text-emerald-600 text-xs">lotes completados</Text>
-            </View>
-          </View>
-        </View>
-        <View className="w-full h-1 bg-gray-400 my-5"></View>
-        <View className="w-full flex flex-row">
-          <View className="w-5/12 items-center justify-center">
-            <Svg height="150" width="150">
-              {slicesMerma}
-            </Svg>
-          </View>
-          <View className="w-7/12 flex flex-col items-center px-5">
-            <View className="bg-green-50 rounded-xl px-2 py-1 w-full mb-3 border-l-4 border-green-500">
-              <View className="flex flex-row items-center mb-2">
-                <View className="w-3 h-3 bg-green-500 rounded-full mr-2"></View>
-                <Text className="font-ibm-condensed-bold text-green-700 text-lg">
-                  Salida
-                </Text>
-              </View>
-              <Text className="text-xl font-ibm-devanagari-bold text-green-800">
-                459,786,435
-              </Text>
-            </View>
-            <View className="bg-red-50 rounded-xl px-2 py-1 border-l-4 w-full border-red-500">
-              <View className="flex flex-row items-center mb-2">
-                <View className="w-3 h-3 bg-red-600 rounded-full mr-2"></View>
-                <Text className="font-ibm-condensed-bold text-emerald-700 text-lg">
-                  Merma
-                </Text>
-              </View>
-              <Text className="text-xl font-ibm-devanagari-bold text-emerald-800">
-                10,849
-              </Text>
             </View>
           </View>
         </View>

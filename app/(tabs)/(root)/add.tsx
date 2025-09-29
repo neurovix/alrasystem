@@ -7,6 +7,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import { router } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   Button,
   Image,
@@ -22,35 +23,30 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function Add() {
   const [permission, requestPermission] = useCameraPermissions();
-
+  const [loading, setLoading] = useState(false);
   const [lastLoteId, setLastLoteId] = useState<number | null>(null);
   const [materiales, setMateriales] = useState<any[]>([]);
   const [clientes, setClientes] = useState<any[]>([]);
   const [selectedMaterial, setSelectedMaterial] = useState("");
   const [selectedCliente, setSelectedCliente] = useState("");
-  const [peso, setPeso] = useState<number | any>(0);
-
+  const [peso, setPeso] = useState<string>("");
   const cameraRef = useRef<CameraView>(null);
-
   const [showCamera, setShowCamera] = useState(false);
-
   const [checkedVenta, setCheckedVenta] = useState<boolean>(false);
   const [checkedMaquila, setCheckedMaquila] = useState<boolean>(false);
-
   const [userId, setUserId] = useState<any>(null);
-
-  const [photos, setPhotos] = useState<(string)[]>(Array(6).fill(null));
-
-  console.log(photos);
-
+  const [photos, setPhotos] = useState<(string | null)[]>(Array(6).fill(null));
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
 
   const takePicture = async () => {
     if (cameraRef.current && activeIndex !== null) {
-      const photo = await cameraRef.current.takePictureAsync();
+      const photo = await cameraRef.current.takePictureAsync({
+        quality: 0.5, // Compress image to 50% quality
+        base64: false, // Avoid base64 in capture to save memory
+      });
       setPhotos((prev) => {
         const newPhotos = [...prev];
-        newPhotos[activeIndex] = photo?.uri || null;
+        newPhotos[activeIndex] = photo?.uri || "";
         return newPhotos;
       });
       setShowCamera(false);
@@ -95,7 +91,6 @@ export default function Add() {
         if (error) throw error;
 
         setUserId(data.user.id);
-
       } catch (err) {
         console.log("❌ Error inesperado:", err);
       }
@@ -106,16 +101,14 @@ export default function Add() {
 
   const reFetch = async () => {
     try {
-      // Limpiar campos
       setSelectedMaterial("");
       setSelectedCliente("");
-      setPeso(0);
+      setPeso("");
       setCheckedVenta(false);
       setCheckedMaquila(false);
       setPhotos(Array(6).fill(null));
       setActiveIndex(null);
 
-      // Obtener el último id_lote de la base de datos
       const { data: lotesData, error: lotesError } = await supabase
         .from("lotes")
         .select("id_lote")
@@ -124,49 +117,60 @@ export default function Add() {
 
       if (lotesError) {
         console.log("❌ Error obteniendo último lote:", lotesError);
-        setLastLoteId(1); // fallback
+        setLastLoteId(1);
       } else if (lotesData && lotesData.length > 0) {
         setLastLoteId(lotesData[0].id_lote + 1);
       } else {
         setLastLoteId(1);
       }
-
     } catch (err) {
       console.log("❌ Error en reFetch:", err);
       setLastLoteId(1);
     }
   };
 
-
-  function base64ToArrayBuffer(base64: any) {
-    const binaryString = atob(base64);
-    const bytes = new Uint8Array(binaryString.length);
-    for (let i = 0; i < binaryString.length; i++) {
-      bytes[i] = binaryString.charCodeAt(i);
-    }
-    return bytes.buffer;
-  }
-
   const handleSave = async () => {
     try {
-      if (!lastLoteId) return;
+      if (!lastLoteId) {
+        Alert.alert("Error", "No se pudo obtener el ID del lote");
+        return;
+      }
+      if (!selectedMaterial) {
+        Alert.alert("Error", "Por favor selecciona un material");
+        return;
+      }
+      if (!selectedCliente) {
+        Alert.alert("Error", "Por favor selecciona un cliente");
+        return;
+      }
+      if (!peso || isNaN(parseFloat(peso)) || parseFloat(peso) <= 0) {
+        Alert.alert("Error", "Por favor ingresa un peso válido");
+        return;
+      }
+      if (!checkedVenta && !checkedMaquila) {
+        Alert.alert("Error", "Por favor selecciona un tipo de proceso");
+        return;
+      }
 
-      // 1️⃣ Insertar lote en BD
+      setLoading(true);
+      const pesoNumerico = parseFloat(peso);
+
       const { error: insertError } = await supabase.from("lotes").insert({
         id_lote: lastLoteId,
         nombre_lote: `LT-${lastLoteId}`,
         id_material: selectedMaterial,
-        peso_entrada_kg: peso,
+        peso_entrada_kg: pesoNumerico,
         fecha_recibido: new Date().toISOString(),
         id_cliente: selectedCliente,
-        tipo_proceso: checkedVenta ? "Venta" : checkedMaquila ? "Maquila" : "Venta",
+        tipo_proceso: checkedVenta ? "Venta" : "Maquila",
         estado_actual: "Recibido",
-        peso_final_kg: peso,
+        peso_final_kg: pesoNumerico,
         created_by: userId,
       });
 
       if (insertError) {
-        console.log("❌ Error insertando lote", insertError);
+        console.log("❌ Error insertando lote:", insertError);
+        Alert.alert("Error", "No se pudo guardar el lote: " + insertError.message);
         return;
       }
 
@@ -175,7 +179,7 @@ export default function Add() {
         .insert({
           id_lote: lastLoteId,
           tipo_proceso: "Recibido",
-          peso_salida_kg: peso,
+          peso_salida_kg: pesoNumerico,
           merma_kg: null,
           fecha_proceso: new Date().toISOString(),
           id_cliente: selectedCliente,
@@ -184,89 +188,131 @@ export default function Add() {
         .select("id_proceso")
         .single();
 
+      const lastProcessId = procesoData?.id_proceso;
+
       if (procesoError) {
-        console.log("❌ Error insertando proceso Recibido", procesoError);
+        console.log("❌ Error insertando proceso:", procesoError);
+        Alert.alert("Error", "No se pudo guardar el proceso: " + procesoError.message);
         return;
       }
-
-      const idProcesoRecibido = procesoData.id_proceso;
 
       const { error: historialError } = await supabase.from("inventario_movimientos")
         .insert({
           id_material: selectedMaterial,
-          cantidad_kg: peso,
+          cantidad_kg: pesoNumerico,
           tipo_movimiento: "Entrada",
           fecha: new Date().toISOString(),
           id_lote: lastLoteId,
           created_by: userId,
-        })
+        });
 
       if (historialError) {
-        console.log("Error insertando los movimientos en el historial ", historialError)
+        console.log("❌ Error insertando movimiento:", historialError);
+        Alert.alert("Error", "No se pudo guardar el movimiento: " + historialError.message);
         return;
       }
 
-      // 3️⃣ Subir fotos + insertar en tabla fotos
-      for (let i = 0; i < photos.length; i++) {
-        if (!photos[i]) continue;
+      const { data: materialData, error: matError} = await supabase.from("materiales")
+        .select("cantidad_disponible_kg")
+        .eq("id_material", selectedMaterial)
+        .single();
+
+      const materialDisponible = materialData?.cantidad_disponible_kg;
+
+      const { error: materialError } = await supabase.from("materiales")
+        .update({
+          cantidad_disponible_kg: Number(materialDisponible) + pesoNumerico,
+        })
+        .eq("id_material", selectedMaterial)
+
+      if (materialError) {
+        console.log("❌ Error actualizando cantidad de material:", materialError);
+        Alert.alert("Error", "No se pudo actualizar el inventario");
+        return;
+      }
+
+      const fotosValidas = photos.filter((photo) => photo !== null && photo !== "");
+      const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+      for (let i = 0; i < fotosValidas.length; i++) {
+        await delay(500);
+        const photoUri = fotosValidas[i];
+        if (!photoUri) continue;
 
         try {
-          // Leer archivo como Base64 usando la API legacy
-          const base64 = await FileSystem.readAsStringAsync(photos[i], {
+          console.log(`Iniciando subida de foto ${i + 1}, URI: ${photoUri}`);
+          const fileInfo = await FileSystem.getInfoAsync(photoUri);
+          if (!fileInfo.exists) {
+            console.log(`❌ Archivo no encontrado: ${photoUri}`);
+            continue;
+          }
+          if (fileInfo.size > 10 * 1024 * 1024) {
+            console.log(`❌ Foto ${i + 1} excede el tamaño máximo (10MB)`);
+            Alert.alert("Error", `La foto ${i + 1} es demasiado grande.`);
+            continue;
+          }
+
+          // Read file as base64
+          const base64 = await FileSystem.readAsStringAsync(photoUri, {
             encoding: FileSystem.EncodingType.Base64,
           });
 
-          // Convertir Base64 a ArrayBuffer para Supabase
-          const arrayBuffer = Uint8Array.from(
-            atob(base64),
-            c => c.charCodeAt(0)
-          );
+          // Convert base64 to ArrayBuffer
+          const binary = atob(base64);
+          const arrayBuffer = new Uint8Array(binary.length);
+          for (let j = 0; j < binary.length; j++) {
+            arrayBuffer[j] = binary.charCodeAt(j);
+          }
 
-          const fileExt = photos[i].split(".").pop() || "jpg";
-          const filePath = `lotes/${lastLoteId}/${idProcesoRecibido}/foto_${i + 1}.${fileExt}`;
+          const fileExt = photoUri.split(".").pop()?.toLowerCase() || "jpg";
+          const contentType = fileExt === "png" ? "image/png" : "image/jpeg";
+          const filePath = `lotes/${lastLoteId}/${lastProcessId}/foto_${i + 1}.${fileExt}`;
 
-          // Subir al Storage
           const { error: uploadError } = await supabase.storage
             .from("lotes")
             .upload(filePath, arrayBuffer, {
               cacheControl: "3600",
               upsert: true,
-              contentType: "image/jpeg",
+              contentType,
             });
 
           if (uploadError) {
-            console.log("❌ Error subiendo foto", i + 1, uploadError);
+            console.log(`❌ Error subiendo foto ${i + 1}:`, uploadError);
             continue;
           }
 
-          // Obtener URL pública
           const { data: publicUrlData } = supabase.storage
             .from("lotes")
             .getPublicUrl(filePath);
 
           const publicUrl = publicUrlData.publicUrl;
 
-          // Insertar en tabla fotos
           const { error: insertFotoError } = await supabase.from("fotos").insert({
             id_lote: lastLoteId,
-            id_proceso: idProcesoRecibido,
+            id_proceso: lastProcessId,
             url_foto: publicUrl,
           });
 
-          if (insertFotoError) console.log("❌ Error insertando foto", i + 1, insertFotoError);
+          if (insertFotoError) {
+            console.log(`❌ Error insertando foto ${i + 1}:`, insertFotoError);
+          }
 
+          // Clean up local file
+          await FileSystem.deleteAsync(photoUri, { idempotent: true });
+          console.log(`✅ Foto ${i + 1} subida y archivo local eliminado`);
         } catch (err) {
-          console.log("❌ Error procesando archivo", i + 1, err);
+          console.log(`❌ Error procesando foto ${i + 1}:`, err);
         }
       }
 
-
-
-      Alert.alert("✅ Lote, proceso Recibido y fotos guardadas correctamente");
-
+      Alert.alert("Éxito", "✅ Lote, proceso y fotos guardadas correctamente");
+      await reFetch();
       router.push("/(tabs)/(root)");
     } catch (err) {
       console.log("❌ Error inesperado:", err);
+      Alert.alert("Error", "Error inesperado: " + (err as Error).message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -275,8 +321,6 @@ export default function Add() {
       <Text className="text-3xl bg-green-600 py-5 text-white font-ibm-condensed-bold px-5">
         Nuevo lote
       </Text>
-
-      {/* 🔑 Manejo de permisos sin cortar hooks */}
       {!permission ? (
         <View className="flex-1 items-center justify-center">
           <Text>Cargando permisos...</Text>
@@ -290,16 +334,23 @@ export default function Add() {
         </View>
       ) : showCamera ? (
         <View style={{ flex: 1 }}>
-          <CameraView style={{ flex: 1 }} ref={cameraRef}>
-            <View style={styles.shutterContainer}>
-              <TouchableOpacity className="mb-5" style={styles.shutterBtn} onPress={takePicture}>
-                <View style={styles.shutterBtnInner} />
-              </TouchableOpacity>
-              <View className="mb-8">
-                <Button color={"#dc2626"} title="Cancelar" onPress={() => setShowCamera(false)} />
-              </View>
+          <CameraView style={{ flex: 1 }} ref={cameraRef} />
+          <View style={styles.shutterContainer}>
+            <TouchableOpacity
+              className="mb-5"
+              style={styles.shutterBtn}
+              onPress={takePicture}
+            >
+              <View style={styles.shutterBtnInner} />
+            </TouchableOpacity>
+            <View className="mb-8">
+              <Button
+                color={"#dc2626"}
+                title="Cancelar"
+                onPress={() => setShowCamera(false)}
+              />
             </View>
-          </CameraView>
+          </View>
         </View>
       ) : (
         <ScrollView
@@ -310,7 +361,6 @@ export default function Add() {
             <Text className="text-2xl font-ibm-devanagari-bold">Detalles</Text>
             <Text className="text-2xl">ID: {lastLoteId ? `LT-${lastLoteId}` : "Cargando..."}</Text>
           </View>
-
           <Text className="mt-5 text-2xl font-ibm-devanagari-bold">Tipo</Text>
           <View style={styles.pickerContainer}>
             <Picker
@@ -328,20 +378,18 @@ export default function Add() {
               ))}
             </Picker>
           </View>
-
           <Text className="mt-3 pb-1 text-2xl font-ibm-devanagari-bold">
             Peso de entrada
           </Text>
-
           <View className="flex flex-row w-full pb-5">
             <TextInput
               className="border-2 w-full py-4 px-2 border-black rounded-lg"
               placeholder="Ingresa el peso"
-              keyboardType="number-pad"
-              onChangeText={(text) => setPeso(text)}
+              keyboardType="numeric"
+              value={peso}
+              onChangeText={setPeso}
             />
           </View>
-
           <Text className="text-2xl font-ibm-devanagari-bold">
             Cliente
           </Text>
@@ -361,7 +409,6 @@ export default function Add() {
               ))}
             </Picker>
           </View>
-
           <Text className="mt-5 text-2xl font-ibm-devanagari-bold">
             Proceso
           </Text>
@@ -376,7 +423,6 @@ export default function Add() {
                 Venta
               </Text>
             </TouchableOpacity>
-
             <TouchableOpacity
               onPress={toggleMaquila}
               className="flex flex-row justify-center w-1/2 items-center"
@@ -391,7 +437,6 @@ export default function Add() {
               </Text>
             </TouchableOpacity>
           </View>
-
           <Text className="mt-5 text-2xl font-ibm-devanagari-bold">Fotos</Text>
           <View className="flex flex-row flex-wrap w-full mt-3 justify-center">
             {photos.map((uri, index) => (
@@ -414,7 +459,6 @@ export default function Add() {
               </TouchableOpacity>
             ))}
           </View>
-
           <View className="flex flex-row w-full mt-5 justify-center">
             <TouchableOpacity
               className="w-1/2 items-center"
@@ -435,6 +479,24 @@ export default function Add() {
             </TouchableOpacity>
           </View>
         </ScrollView>
+      )}
+      {loading && (
+        <View
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "rgba(0,0,0,0.5)",
+            justifyContent: "center",
+            alignItems: "center",
+            zIndex: 1000,
+          }}
+        >
+          <ActivityIndicator size="large" color="#fff" />
+          <Text className="text-white mt-3 text-xl">Guardando...</Text>
+        </View>
       )}
     </SafeAreaView>
   );
@@ -473,7 +535,7 @@ const styles = StyleSheet.create({
     height: 50,
   },
   pickerIOS: {
-    height: 200, // <-- ajusta este valor a lo que prefieras
-    fontSize: 16, // opcional
+    height: 200,
+    fontSize: 16,
   },
 });

@@ -10,11 +10,12 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   TouchableWithoutFeedback,
-  View,
+  View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -72,7 +73,7 @@ export default function SignIn() {
           ])
           .select();
 
-          console.log(data);
+        console.log(data);
 
         if (insertError) {
           console.log(insertError);
@@ -98,7 +99,7 @@ export default function SignIn() {
   return (
     <SafeAreaView className="flex-1 bg-gray-100">
       <View className="pt-4 pl-4">
-        <TouchableOpacity onPress={() => router.replace("/(tabs)")}>
+        <TouchableOpacity onPress={() => router.back()}>
           <AntDesign name="left" size={30} color="green" />
         </TouchableOpacity>
       </View>
@@ -161,12 +162,9 @@ export default function SignIn() {
                       <Picker
                         selectedValue={role}
                         onValueChange={(itemValue) => setRole(itemValue)}
-                        style={{
-                          height: 60,
-                          color: "#000000",
-                        }}
-                        mode="dropdown"
+                        style={Platform.OS === "ios" ? styles.pickerIOS : styles.picker}
                       >
+                        <Picker.Item label="Selecciona un rol" value="" />
                         <Picker.Item label="Operador" value="Operador" />
                         <Picker.Item
                           label="Administrador"
@@ -259,3 +257,41 @@ export default function SignIn() {
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  shutterContainer: {
+    position: "absolute",
+    bottom: 44,
+    width: "100%",
+    alignItems: "center",
+  },
+  shutterBtn: {
+    backgroundColor: "transparent",
+    borderWidth: 5,
+    borderColor: "white",
+    width: 85,
+    height: 85,
+    borderRadius: 45,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  shutterBtnInner: {
+    width: 70,
+    height: 70,
+    borderRadius: 50,
+    backgroundColor: "white",
+  },
+  pickerContainer: {
+    borderWidth: 2,
+    borderColor: 'black',
+    borderRadius: 10,
+    overflow: 'hidden',
+  },
+  picker: {
+    height: 50,
+  },
+  pickerIOS: {
+    height: 200,
+    fontSize: 16,
+  },
+});

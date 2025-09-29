@@ -1,38 +1,43 @@
 import LoteBox from "@/components/ui/LoteBox";
 import { supabase } from "@/lib/supabase";
-import { useEffect, useState } from "react";
+import { useFocusEffect } from "@react-navigation/native";
+import { useCallback, useState } from "react";
 import { ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function Search() {
   const [loteData, setLoteData] = useState<any[]>([]);
 
-  useEffect(() => {
-    const fetchLotes = async () => {
-      // 1️⃣ Traer lotes cuyo estado_actual sea distinto de "Finalizado"
-      const { data, error } = await supabase
-        .from("lotes")
-        .select("id_lote, nombre_lote, estado_actual")
-        .neq("estado_actual", "Finalizado"); // 👈 filtro directo en la query
+  useFocusEffect(
+    useCallback(() => {
+      const fetchLotes = async () => {
+        const { data, error } = await supabase
+          .from("lotes")
+          .select("id_lote, nombre_lote, estado_actual")
+          .neq("estado_actual", "Finalizado");
 
-      if (error) {
-        console.log("Error cargando lotes:", error);
-        return;
-      }
+        if (error) {
+          console.log("Error cargando lotes:", error);
+          return;
+        }
 
-      if (data && data.length > 0) {
-        const lotes = data.map(item => ({
-          id: item.id_lote,
-          name: item.nombre_lote,
-          status: "En proceso", // 👈 siempre en proceso si no es Finalizado
-          etapa: item.estado_actual,
-        }));
-        setLoteData(lotes);
-      }
-    };
+        if (data) {
+          const lotes = data.map(item => ({
+            id: item.id_lote,
+            name: item.nombre_lote,
+            status: "En proceso",
+            etapa: item.estado_actual,
+          }));
+          setLoteData(lotes);
+        } else {
+          setLoteData([]); // 👈 limpiar si no hay datos
+        }
+      };
 
-    fetchLotes();
-  }, []);
+      fetchLotes();
+    }, [])
+  );
+
 
   return (
     <SafeAreaView className="bg-green-600 flex-1">

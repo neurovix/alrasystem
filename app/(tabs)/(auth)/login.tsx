@@ -55,7 +55,7 @@ export default function LogIn() {
   return (
     <SafeAreaView className="flex-1 bg-gray-100">
       <View className="pt-4 pl-4 z-10">
-        <TouchableOpacity onPress={() => router.replace("/(tabs)")}>
+        <TouchableOpacity onPress={() => router.back()}>
           <AntDesign name="left" size={30} color="green" />
         </TouchableOpacity>
       </View>

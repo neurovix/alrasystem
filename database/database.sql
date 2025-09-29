@@ -9,10 +9,10 @@ CREATE TYPE rol_usuario AS ENUM ('Administrador', 'Operador');
 CREATE TYPE tipo_proceso_lote AS ENUM ('Venta', 'Maquila');
 
 -- Estado del lote
-CREATE TYPE estado_lote AS ENUM ('Recibido', 'Molienda', 'Peletizado', 'Retorno', 'Venta', 'Finalizado');
+CREATE TYPE estado_lote AS ENUM ('Recibido', 'Molienda', 'Peletizado', 'Finalizado');
 
 -- Procesos posibles
-CREATE TYPE tipo_proceso AS ENUM ('Molienda', 'Peletizado', 'Retorno', 'Venta', 'Recibido');
+CREATE TYPE tipo_proceso AS ENUM ('Recibido', 'Molienda', 'Peletizado', 'Retorno', 'Venta');
 
 -- Tipo de movimiento de inventario
 CREATE TYPE tipo_movimiento AS ENUM ('Entrada', 'Salida', 'Ajuste');
@@ -48,7 +48,7 @@ CREATE TABLE lotes (
     nombre_lote TEXT UNIQUE NOT NULL,
     id_material INT NOT NULL REFERENCES materiales (id_material) ON DELETE RESTRICT,
     peso_entrada_kg NUMERIC NOT NULL,
-    fecha_recibido DATE NOT NULL,
+    fecha_recibido TIMESTAMP NOT NULL,
     id_cliente INT NOT NULL REFERENCES clientes (id_cliente) ON DELETE RESTRICT,
     tipo_proceso tipo_proceso_lote NOT NULL,
     estado_actual estado_lote NOT NULL DEFAULT 'Recibido',
@@ -63,7 +63,7 @@ CREATE TABLE procesos (
     tipo_proceso tipo_proceso NOT NULL,
     peso_salida_kg NUMERIC NOT NULL,
     merma_kg NUMERIC NOT NULL,
-    fecha_proceso DATE NOT NULL,
+    fecha_proceso TIMESTAMP NOT NULL,
     id_cliente INT REFERENCES clientes (id_cliente) ON DELETE SET NULL,
     created_by UUID NOT NULL REFERENCES usuarios (id_usuario) ON DELETE SET NULL
 );
