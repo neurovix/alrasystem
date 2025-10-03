@@ -102,6 +102,7 @@ export default function Retorno() {
     const { error: updateError } = await supabase.from("lotes")
       .update({
         estado_actual: "Finalizado",
+        peso_final_kg: peso,
       })
       .eq("id_lote", selectedLote?.id_lote);
 

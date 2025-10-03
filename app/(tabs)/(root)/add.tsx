@@ -164,7 +164,7 @@ export default function Add() {
         id_cliente: selectedCliente,
         tipo_proceso: checkedVenta ? "Venta" : "Maquila",
         estado_actual: "Recibido",
-        peso_final_kg: pesoNumerico,
+        peso_final_kg: null,
         created_by: userId,
       });
 
