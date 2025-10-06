@@ -3,6 +3,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import {
+  Alert,
   Image,
   ScrollView,
   Text,
@@ -81,6 +82,16 @@ export default function LoteInformation() {
     Retorno: "Retorno a Planta",
     Venta: "Venta",
   };
+
+  const handleN8N = async () => {
+    await fetch(`https://n8n.srv1034345.hstgr.cloud/webhook/49909213-02c1-4faa-81ef-6d162d22ea15?id_lote=${id}`, {
+      method: "POST",
+    })
+
+    Alert.alert("Exito", "Reporte enviado a su correo");
+
+    router.back();
+  }
 
   const getStepData = (proceso: any, lote: any, cliente: string) => {
     const procCliente = proceso.cliente?.nombre_cliente || cliente;
@@ -304,7 +315,7 @@ export default function LoteInformation() {
 
         {/* Botones de accion */}
         <View className="mt-5">
-          <TouchableOpacity className="bg-blue-600 rounded-xl py-2">
+          <TouchableOpacity onPress={handleN8N} className="bg-blue-600 rounded-xl py-2">
             <Text className="text-center text-white font-ibm-condensed-bold text-xl">GENERAR REPORTE</Text>
           </TouchableOpacity>
         </View>

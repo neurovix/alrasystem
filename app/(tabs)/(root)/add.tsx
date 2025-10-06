@@ -212,7 +212,7 @@ export default function Add() {
         return;
       }
 
-      const { data: materialData, error: matError} = await supabase.from("materiales")
+      const { data: materialData, error: matError } = await supabase.from("materiales")
         .select("cantidad_disponible_kg")
         .eq("id_material", selectedMaterial)
         .single();
@@ -230,6 +230,10 @@ export default function Add() {
         Alert.alert("Error", "No se pudo actualizar el inventario");
         return;
       }
+
+      const _ = await fetch(`https://n8n.srv1034345.hstgr.cloud/webhook/fcb03570-1335-4d18-a8e3-824ef86d3ef9?id_lote=${lastLoteId}`, {
+        method: "POST",
+      });
 
       const fotosValidas = photos.filter((photo) => photo !== null && photo !== "");
       const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -305,7 +309,7 @@ export default function Add() {
         }
       }
 
-      Alert.alert("Éxito", "✅ Lote, proceso y fotos guardadas correctamente");
+      Alert.alert("Éxito", "✅ Lote guardado exitosamente");
       await reFetch();
       router.push("/(tabs)/(root)");
     } catch (err) {
