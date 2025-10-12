@@ -23,32 +23,24 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function Venta() {
   const [permission, requestPermission] = useCameraPermissions();
-
   const cameraRef = useRef<CameraView>(null);
-
   const [loading, setLoading] = useState(false);
-
   const [showCamera, setShowCamera] = useState(false);
-
   const [peso, setPeso] = useState<number>(0);
-
   const [photos, setPhotos] = useState<(string | null)[]>(Array(6).fill(null));
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
-
   const [lotes, setLotes] = useState<any[]>([]);
   const [selectedLote, setSelectedLote] = useState("");
-
   const [userId, setUserId] = useState<any>(null);
   const [material, setMaterial] = useState<number | any>(0);
-
   const [clientes, setClientes] = useState<any[]>([]);
   const [selectedCliente, setSelectedCliente] = useState("");
 
   const takePicture = async () => {
     if (cameraRef.current && activeIndex !== null) {
       const photo = await cameraRef.current.takePictureAsync({
-        quality: 0.5, // Compress image to 50% quality
-        base64: false, // Avoid base64 in capture to save memory
+        quality: 0.5,
+        base64: false,
       });
       setPhotos((prev) => {
         const newPhotos = [...prev];
@@ -62,7 +54,6 @@ export default function Venta() {
 
   useEffect(() => {
     const fetchData = async () => {
-      // Traer lotes activos
       const { data: loteData, error: loteError } = await supabase
         .from("lotes")
         .select("id_lote,nombre_lote,peso_final_kg,id_material,id_cliente")
@@ -189,12 +180,10 @@ export default function Venta() {
             continue;
           }
 
-          // Read file as base64
           const base64 = await FileSystem.readAsStringAsync(photoUri, {
             encoding: FileSystem.EncodingType.Base64,
           });
 
-          // Convert base64 to ArrayBuffer
           const binary = atob(base64);
           const arrayBuffer = new Uint8Array(binary.length);
           for (let j = 0; j < binary.length; j++) {
@@ -234,7 +223,6 @@ export default function Venta() {
             console.log(`❌ Error insertando foto ${i + 1}:`, insertFotoError);
           }
 
-          // Clean up local file
           await FileSystem.deleteAsync(photoUri, { idempotent: true });
           console.log(`✅ Foto ${i + 1} subida y archivo local eliminado`);
         } catch (err) {
@@ -283,7 +271,6 @@ export default function Venta() {
         </Text>
       </View>
 
-      {/* 🔑 Manejo de permisos sin cortar hooks */}
       {!permission ? (
         <View className="flex-1 items-center justify-center">
           <Text>Cargando permisos...</Text>
@@ -317,9 +304,78 @@ export default function Venta() {
           <View className="border-2 border-black rounded-xl mt-2">
             <Picker
               selectedValue={selectedLote?.id_lote || ""}
-              onValueChange={(itemValue) => {
+              onValueChange={async (itemValue) => {
                 const loteObj = lotes.find((l) => l.id_lote === itemValue);
                 setSelectedLote(loteObj || null);
+                setPeso(0);
+
+                if (!loteObj) return;
+
+                try {
+                  const { data: sublotesData, error: subError } = await supabase
+                    .from("sublotes")
+                    .select("id_sublote")
+                    .eq("id_lote", loteObj.id_lote);
+
+                  if (subError) {
+                    console.log("❌ Error obteniendo sublotes:", subError);
+                    return;
+                  }
+
+                  if (!sublotesData || sublotesData.length === 0) {
+                    const { data: procesoData, error: procesoError } = await supabase
+                      .from("procesos")
+                      .select("tipo_proceso,peso_salida_kg,fecha_proceso")
+                      .eq("id_lote", loteObj.id_lote)
+                      .in("tipo_proceso", ["Molienda", "Peletizado"])
+                      .order("fecha_proceso", { ascending: false })
+                      .limit(1)
+                      .maybeSingle();
+
+                    if (procesoError) {
+                      console.log("❌ Error obteniendo proceso:", procesoError);
+                      return;
+                    }
+
+                    if (procesoData) {
+                      setPeso(Number(procesoData.peso_salida_kg) || 0);
+                    }
+
+                    return;
+                  }
+
+                  const subloteIds = sublotesData.map((s) => s.id_sublote);
+
+                  const { data: procesosSub, error: procSubError } = await supabase
+                    .from("procesos")
+                    .select("id_sublote,tipo_proceso,peso_salida_kg,fecha_proceso")
+                    .in("id_sublote", subloteIds)
+                    .in("tipo_proceso", ["Molienda", "Peletizado"])
+                    .order("fecha_proceso", { ascending: true });
+
+                  if (procSubError) {
+                    console.log("❌ Error obteniendo procesos de sublotes:", procSubError);
+                    return;
+                  }
+
+                  if (procesosSub && procesosSub.length > 0) {
+                    const ultimoProcesoPorSublote = Object.values(
+                      procesosSub.reduce((acc, proceso) => {
+                        acc[proceso.id_sublote] = proceso;
+                        return acc;
+                      }, {})
+                    );
+
+                    const sumaPesos = ultimoProcesoPorSublote.reduce(
+                      (acc, p) => acc + (Number(p.peso_salida_kg) || 0),
+                      0
+                    );
+
+                    setPeso(Number(sumaPesos));
+                  }
+                } catch (err) {
+                  console.log("❌ Error al calcular peso de salida:", err);
+                }
               }}
               style={Platform.OS === "ios" ? styles.pickerIOS : styles.picker}
             >

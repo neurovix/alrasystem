@@ -127,13 +127,11 @@ export default function Molienda() {
     }
 
     if (!tieneSublotes) {
-      // Si no hay sublotes, el lote pasa directo a molienda
       await supabase
         .from("lotes")
         .update({ estado_actual: "Molienda" })
         .eq("id_lote", selectedLote.id_lote);
     } else {
-      // Trae todos los sublotes actualizados del lote
       const { data: sublotesData, error: subError } = await supabase
         .from("sublotes")
         .select("id_sublote, estado_actual")
@@ -144,12 +142,10 @@ export default function Molienda() {
         return;
       }
 
-      // Filtra los sublotes que todavía no han sido molidos
       const sublotesPendientes = sublotesData?.filter(
         (s: any) => s.estado_actual !== "Molienda" && s.estado_actual !== "Finalizado"
       );
 
-      // Si solo queda el sublote actual (es decir, pendientes === 1), actualiza el lote
       if (sublotesPendientes && sublotesPendientes.length === 1) {
         await supabase
           .from("lotes")
@@ -211,12 +207,10 @@ export default function Molienda() {
             continue;
           }
 
-          // Read file as base64
           const base64 = await FileSystem.readAsStringAsync(photoUri, {
             encoding: FileSystem.EncodingType.Base64,
           });
 
-          // Convert base64 to ArrayBuffer
           const binary = atob(base64);
           const arrayBuffer = new Uint8Array(binary.length);
           for (let j = 0; j < binary.length; j++) {
@@ -228,7 +222,6 @@ export default function Molienda() {
           const filePath = tieneSublotes
             ? `lotes/${selectedLote.id_lote}/${selectedSublote.id_sublote}/${lastProcessId}/foto_${i + 1}.${fileExt}`
             : `lotes/${selectedLote.id_lote}/${lastProcessId}/foto_${i + 1}.${fileExt}`;
-
 
           const { error: uploadError } = await supabase.storage
             .from("lotes")
@@ -260,7 +253,6 @@ export default function Molienda() {
             console.log(`❌ Error insertando foto ${i + 1}:`, insertFotoError);
           }
 
-          // Clean up local file
           await FileSystem.deleteAsync(photoUri, { idempotent: true });
           console.log(`✅ Foto ${i + 1} subida y archivo local eliminado`);
         } catch (err) {
@@ -419,8 +411,7 @@ export default function Molienda() {
               </View>
             </>
           )}
-
-
+          
           <Text className="mt-3 pb-1 text-2xl font-ibm-devanagari-bold">
             Peso de salida
           </Text>

@@ -18,7 +18,8 @@ export default function Search() {
         const { data, error } = await supabase
           .from("lotes")
           .select("id_lote, nombre_lote, estado_actual")
-          .neq("estado_actual", "Finalizado");
+          .neq("estado_actual", "Finalizado")
+          .order("id_lote", {ascending: true});
 
         if (error) {
           console.log("Error cargando lotes:", error);
