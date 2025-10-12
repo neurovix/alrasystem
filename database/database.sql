@@ -42,7 +42,7 @@ CREATE TABLE materiales (
     cantidad_disponible_kg NUMERIC NOT NULL DEFAULT 0
 );
 
--- 4. Lotes
+-- 4. Lotes (lote principal)
 CREATE TABLE lotes (
     id_lote SERIAL PRIMARY KEY,
     nombre_lote TEXT UNIQUE NOT NULL,
@@ -53,30 +53,53 @@ CREATE TABLE lotes (
     tipo_proceso tipo_proceso_lote NOT NULL,
     estado_actual estado_lote NOT NULL DEFAULT 'Recibido',
     peso_final_kg NUMERIC,
+    created_by UUID NOT NULL REFERENCES usuarios (id_usuario) ON DELETE SET NULL,
+    reporte_url TEXT NULL,
+    numero_de_sublotes INT NULL
+);
+
+-- 5. Sublotes (costales derivados del lote principal)
+CREATE TABLE sublotes (
+    id_sublote SERIAL PRIMARY KEY,
+    id_lote INT NOT NULL REFERENCES lotes (id_lote) ON DELETE CASCADE,
+    nombre_sublote TEXT UNIQUE NOT NULL,          -- Ejemplo: "LT-1/01"
+    peso_sublote_kg NUMERIC NOT NULL,
+    fecha_creado TIMESTAMP NOT NULL DEFAULT now(),
+    estado_actual estado_lote NOT NULL DEFAULT 'Recibido',
     created_by UUID NOT NULL REFERENCES usuarios (id_usuario) ON DELETE SET NULL
 );
 
--- 5. Procesos
+-- 6. Procesos
 CREATE TABLE procesos (
     id_proceso SERIAL PRIMARY KEY,
-    id_lote INT NOT NULL REFERENCES lotes (id_lote) ON DELETE CASCADE,
+    id_lote INT REFERENCES lotes (id_lote) ON DELETE CASCADE,
+    id_sublote INT REFERENCES sublotes (id_sublote) ON DELETE CASCADE,
     tipo_proceso tipo_proceso NOT NULL,
     peso_salida_kg NUMERIC NOT NULL,
     merma_kg NUMERIC NOT NULL,
     fecha_proceso TIMESTAMP NOT NULL,
     id_cliente INT REFERENCES clientes (id_cliente) ON DELETE SET NULL,
-    created_by UUID NOT NULL REFERENCES usuarios (id_usuario) ON DELETE SET NULL
+    created_by UUID NOT NULL REFERENCES usuarios (id_usuario) ON DELETE SET NULL,
+    CONSTRAINT chk_lote_o_sublote CHECK (
+        (id_lote IS NOT NULL AND id_sublote IS NULL)
+        OR (id_lote IS NULL AND id_sublote IS NOT NULL)
+    )
 );
 
--- 6. Fotos
+-- 7. Fotos
 CREATE TABLE fotos (
     id_foto SERIAL PRIMARY KEY,
-    id_lote INT NOT NULL REFERENCES lotes (id_lote) ON DELETE CASCADE,
+    id_lote INT REFERENCES lotes (id_lote) ON DELETE CASCADE,
+    id_sublote INT REFERENCES sublotes (id_sublote) ON DELETE CASCADE,
     id_proceso INT REFERENCES procesos (id_proceso) ON DELETE SET NULL,
-    url_foto TEXT NOT NULL
+    url_foto TEXT NOT NULL,
+    CONSTRAINT chk_foto_lote_o_sublote CHECK (
+        (id_lote IS NOT NULL AND id_sublote IS NULL)
+        OR (id_lote IS NULL AND id_sublote IS NOT NULL)
+    )
 );
 
--- 7. Inventario (movimientos)
+-- 8. Inventario (movimientos)
 CREATE TABLE inventario_movimientos (
     id_movimiento SERIAL PRIMARY KEY,
     id_material INT NOT NULL REFERENCES materiales (id_material) ON DELETE RESTRICT,
@@ -84,5 +107,14 @@ CREATE TABLE inventario_movimientos (
     tipo_movimiento tipo_movimiento NOT NULL,
     fecha TIMESTAMPTZ NOT NULL DEFAULT now(),
     id_lote INT REFERENCES lotes (id_lote) ON DELETE SET NULL,
-    created_by UUID NOT NULL REFERENCES usuarios (id_usuario) ON DELETE SET NULL
+    id_sublote INT REFERENCES sublotes (id_sublote) ON DELETE SET NULL,
+    created_by UUID NOT NULL REFERENCES usuarios (id_usuario) ON DELETE SET NULL,
+    CONSTRAINT chk_inv_lote_o_sublote CHECK (
+        (id_lote IS NOT NULL AND id_sublote IS NULL)
+        OR (id_lote IS NULL AND id_sublote IS NOT NULL)
+    )
 );
+
+-- ===============================
+-- FIN DEL SCRIPT
+-- ===============================

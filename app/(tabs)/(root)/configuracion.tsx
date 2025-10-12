@@ -171,7 +171,7 @@ export default function Configuracion() {
               Versión 1.0.0
             </Text>
             <Text className="text-gray-400 text-xs mt-1">
-              © 2025 Sistema creado por Neurovix S. de R.L. de C.V.
+              © 2025 Sistema creado por Neurovix
             </Text>
           </View>
         </View>

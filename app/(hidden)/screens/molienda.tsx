@@ -4,8 +4,8 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Picker } from "@react-native-picker/picker";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import * as FileSystem from 'expo-file-system/legacy';
-import { router } from "expo-router";
-import { useEffect, useRef, useState } from "react";
+import { router, useFocusEffect } from "expo-router";
+import { useCallback, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -23,30 +23,24 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function Molienda() {
   const [permission, requestPermission] = useCameraPermissions();
-
   const [loading, setLoading] = useState(false);
-
   const [peso, setPeso] = useState<number>(0);
   const [merma, setMerma] = useState<number>(0);
-
   const cameraRef = useRef<CameraView>(null);
-
   const [showCamera, setShowCamera] = useState(false);
-
   const [photos, setPhotos] = useState<(string | null)[]>(Array(6).fill(null));
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
-
   const [lotes, setLotes] = useState<any[]>([]);
   const [selectedLote, setSelectedLote] = useState("");
-
   const [userId, setUserId] = useState<any>(null);
   const [material, setMaterial] = useState<number | any>(0);
+  const [sublotes, setSublotes] = useState<[{}]>([{}]);
 
   const takePicture = async () => {
     if (cameraRef.current && activeIndex !== null) {
       const photo = await cameraRef.current.takePictureAsync({
-        quality: 0.5, // Compress image to 50% quality
-        base64: false, // Avoid base64 in capture to save memory
+        quality: 0.5,
+        base64: false,
       });
       setPhotos((prev) => {
         const newPhotos = [...prev];
@@ -58,34 +52,36 @@ export default function Molienda() {
     }
   };
 
-  useEffect(() => {
-    const fetchData = async () => {
-      const { data: loteData } = await supabase.from("lotes")
-        .select("id_lote,nombre_lote,peso_final_kg,id_material,id_cliente")
-        .not("estado_actual", "in", "(Finalizado,Molienda,Peletizado)");
+  useFocusEffect(
+    useCallback(() => {
+      const fetchData = async () => {
+        const { data: loteData } = await supabase.from("lotes")
+          .select("id_lote,nombre_lote,peso_entrada_kg,id_material,id_cliente,numero_de_sublotes")
+          .not("estado_actual", "in", "(Finalizado,Molienda,Peletizado)");
 
-      setLotes(loteData || []);
+        setLotes(loteData || []);
 
-      if (selectedLote) {
-        setMaterial(selectedLote.id_material);
+        if (selectedLote) {
+          setMaterial(selectedLote.id_material);
+        }
+
+        const { data, error } = await supabase.auth.getUser();
+
+        if (error) throw error;
+
+        setUserId(data.user.id);
+      };
+
+      if (selectedLote && peso) {
+        // La merma es la diferencia entre el peso final del lote y el peso ingresado
+        setMerma(Number(selectedLote.peso_entrada_kg) - Number(peso));
+      } else {
+        setMerma(0);
       }
 
-      const { data, error } = await supabase.auth.getUser();
-
-      if (error) throw error;
-
-      setUserId(data.user.id);
-    };
-
-    if (selectedLote && peso) {
-      // La merma es la diferencia entre el peso final del lote y el peso ingresado
-      setMerma(Number(selectedLote.peso_final_kg) - Number(peso));
-    } else {
-      setMerma(0);
-    }
-
-    fetchData();
-  }, [selectedLote, peso]);
+      fetchData();
+    }, [selectedLote, peso])
+  );
 
   const handleSave = async () => {
     const { data: processData, error: insertError } = await supabase.from("procesos")
@@ -250,15 +246,15 @@ export default function Molienda() {
 
       const fetchData = async () => {
         const { data: loteData } = await supabase.from("lotes")
-          .select("id_lote,nombre_lote,peso_final_kg,id_material,id_cliente")
-          .not("estado_actual", "in", "(Finalizado,Molienda)");
+          .select("id_lote,nombre_lote,peso_entrada_kg,id_material,id_cliente,numero_de_sublotes")
+          .not("estado_actual", "in", "(Finalizado,Molienda,Peletizado)");
 
         setLotes(loteData || []);
       };
 
       if (selectedLote && peso) {
         // La merma es la diferencia entre el peso final del lote y el peso ingresado
-        setMerma(Number(selectedLote.peso_final_kg) - Number(peso));
+        setMerma(Number(selectedLote.peso_entrada_kg) - Number(peso));
       } else {
         setMerma(0);
       }
@@ -266,6 +262,15 @@ export default function Molienda() {
       console.log("❌ Error en reFetch:", err);
     }
   };
+
+  const handleLoteChange = async (idLote: any) => {
+    const loteObj = lotes.find((l) => l.id_lote === idLote);
+    setSelectedLote(loteObj || null);
+
+    if (loteObj) {
+      
+    }
+  }
 
   return (
     <SafeAreaView className="bg-green-600 flex-1">
@@ -312,10 +317,7 @@ export default function Molienda() {
           <View className="border-2 border-black rounded-xl mt-2">
             <Picker
               selectedValue={selectedLote?.id_lote || ""}
-              onValueChange={(itemValue) => {
-                const loteObj = lotes.find((l) => l.id_lote === itemValue);
-                setSelectedLote(loteObj || null);
-              }}
+              onValueChange={handleLoteChange}
               style={Platform.OS === "ios" ? styles.pickerIOS : styles.picker}
             >
               <Picker.Item label="Selecciona un lote" value="" />
@@ -347,6 +349,18 @@ export default function Molienda() {
             <Text className="font-ibm-devanagari-bold">Merma: </Text>
             <Text className="font-ibm-devanagari-regular text-red-600">{merma} kg</Text>
           </View>
+
+          {sublotes.length > 0 ? (
+            <>
+            
+            </>
+            ) :
+            (
+            <>
+            
+            </>
+            )
+          }
 
           <Text className="text-2xl font-ibm-devanagari-bold">Fotos</Text>
           <View className="flex flex-row flex-wrap w-full mt-3 justify-center">

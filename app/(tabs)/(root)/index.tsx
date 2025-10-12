@@ -1,7 +1,7 @@
 import icons from "@/constants/icons";
 import { supabase } from "@/lib/supabase"; // Adjust import path to your Supabase client setup
-import { router } from "expo-router";
-import { useEffect, useState } from "react";
+import { router, useFocusEffect } from "expo-router";
+import { useCallback, useState } from "react";
 import { Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Circle, G, Path } from "react-native-svg";
@@ -35,57 +35,58 @@ export default function Home() {
   const [totalMerma, setTotalMerma] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        // Fetch lotes status
-        const { data: lotesData, error: lotesError } = await supabase
-          .from("lotes")
-          .select("estado_actual");
+  useFocusEffect(
+    useCallback(() => {
+      async function fetchData() {
+        try {
+          // Fetch lotes status
+          const { data: lotesData, error: lotesError } = await supabase
+            .from("lotes")
+            .select("estado_actual");
 
-        if (lotesError) throw lotesError;
+          if (lotesError) throw lotesError;
 
-        const lotesCount = lotesData.reduce(
-          (acc, lote) => {
-            acc[lote.estado_actual === "Finalizado" ? "finalizados" : "enProceso"]++;
-            return acc;
-          },
-          { enProceso: 0, finalizados: 0 }
-        );
+          const lotesCount = lotesData.reduce(
+            (acc, lote) => {
+              acc[lote.estado_actual === "Finalizado" ? "finalizados" : "enProceso"]++;
+              return acc;
+            },
+            { enProceso: 0, finalizados: 0 }
+          );
 
-        setDataLotes([
-          { label: "En proceso", value: lotesCount.enProceso, color: "#eab308" },
-          { label: "Finalizados", value: lotesCount.finalizados, color: "#059669" },
-        ]);
-        setTotalLotes(lotesCount.enProceso + lotesCount.finalizados);
+          setDataLotes([
+            { label: "En proceso", value: lotesCount.enProceso, color: "#eab308" },
+            { label: "Finalizados", value: lotesCount.finalizados, color: "#059669" },
+          ]);
+          setTotalLotes(lotesCount.enProceso + lotesCount.finalizados);
 
-        // Fetch merma data from procesos
-        const { data: procesosData, error: procError } = await supabase
-          .from("procesos")
-          .select("merma_kg, tipo_proceso");
+          // Fetch merma data from procesos
+          const { data: procesosData, error: procError } = await supabase
+            .from("procesos")
+            .select("merma_kg, tipo_proceso");
 
-        if (procError) throw procError;
+          if (procError) throw procError;
 
-        const mermaTotal = procesosData.reduce((acc, proc) => acc + (proc.merma_kg || 0), 0);
-        const mermaEnProceso = procesosData
-          .filter((proc) => ["Molienda", "Peletizado"].includes(proc.tipo_proceso))
-          .reduce((acc, proc) => acc + (proc.merma_kg || 0), 0);
-        const mermaFinalizada = mermaTotal - mermaEnProceso;
+          const mermaTotal = procesosData.reduce((acc, proc) => acc + (proc.merma_kg || 0), 0);
+          const mermaEnProceso = procesosData
+            .filter((proc) => ["Molienda", "Peletizado"].includes(proc.tipo_proceso))
+            .reduce((acc, proc) => acc + (proc.merma_kg || 0), 0);
+          const mermaFinalizada = mermaTotal - mermaEnProceso;
 
-        setDataMerma([
-          { label: "En proceso", value: mermaEnProceso, color: "#15803d" },
-          { label: "Finalizados", value: mermaFinalizada, color: "#b91c1c" },
-        ]);
-        setTotalMerma(mermaTotal);
-      } catch (error) {
-        console.error("Error fetching data:", error);
-      } finally {
-        setLoading(false);
+          setDataMerma([
+            { label: "En proceso", value: mermaEnProceso, color: "#15803d" },
+            { label: "Finalizados", value: mermaFinalizada, color: "#b91c1c" },
+          ]);
+          setTotalMerma(mermaTotal);
+        } catch (error) {
+          console.error("Error fetching data:", error);
+        } finally {
+          setLoading(false);
+        }
       }
-    }
 
-    fetchData();
-  }, []);
+      fetchData();
+    }, []));
 
   let startAngleLote = 0;
   const slicesLote = dataLotes.map((item, index) => {
@@ -216,7 +217,7 @@ export default function Home() {
             <TouchableOpacity onPress={() => router.push("/screens/retorno")} className="w-[48%] flex items-center border-b-4 border-green-500 bg-emerald-50 rounded-xl py-4">
               <Image tintColor="#059669" source={icons.retorno} />
               <Text className="font-ibm-condensed-bold pt-2 text-lg">
-                Retorno a planta
+                Maquila
               </Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={() => router.push("/screens/venta")} className="w-[48%] flex items-center border-b-4 border-green-500 bg-emerald-50 rounded-xl py-4">

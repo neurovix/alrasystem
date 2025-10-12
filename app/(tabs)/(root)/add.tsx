@@ -4,8 +4,8 @@ import { Picker } from "@react-native-picker/picker";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import CheckBox from "expo-checkbox";
 import * as FileSystem from 'expo-file-system/legacy';
-import { router } from "expo-router";
-import { useEffect, useRef, useState } from "react";
+import { router, useFocusEffect } from "expo-router";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -34,15 +34,40 @@ export default function Add() {
   const [showCamera, setShowCamera] = useState(false);
   const [checkedVenta, setCheckedVenta] = useState<boolean>(false);
   const [checkedMaquila, setCheckedMaquila] = useState<boolean>(false);
+  const [checkedSublote, setCheckedSublote] = useState<boolean>(false);
   const [userId, setUserId] = useState<any>(null);
   const [photos, setPhotos] = useState<(string | null)[]>(Array(6).fill(null));
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
+  const [numeroDeSublotes, setNumeroDeSublotes] = useState<string>("");
+  const [checkedPesosDiferentes, setCheckedPesosDiferentes] = useState<boolean>(false);
+  const [checkedPesosIguales, setCheckedPesosIguales] = useState<boolean>(false);
+  const [sublotes, setSublotes] = useState([{}]);
+
+  useEffect(() => {
+    const num = parseInt(numeroDeSublotes);
+    if (checkedPesosDiferentes && num > 0) {
+      const nuevos = Array.from({ length: num }, (_, i) => ({
+        numero: i + 1,
+        peso: "",
+      }));
+      setSublotes(nuevos);
+    } else {
+      setSublotes([]);
+    }
+  }, [numeroDeSublotes, checkedPesosDiferentes]);
+
+  // ✅ Maneja cambios en cada input de peso
+  const handlePesoChange = (index: any, value: any) => {
+    const nuevos = [...sublotes];
+    nuevos[index].peso = value;
+    setSublotes(nuevos);
+  };
 
   const takePicture = async () => {
     if (cameraRef.current && activeIndex !== null) {
       const photo = await cameraRef.current.takePictureAsync({
-        quality: 0.5, // Compress image to 50% quality
-        base64: false, // Avoid base64 in capture to save memory
+        quality: 0.5,
+        base64: false,
       });
       setPhotos((prev) => {
         const newPhotos = [...prev];
@@ -57,47 +82,59 @@ export default function Add() {
   const toggleVenta = () => setCheckedVenta(!checkedVenta);
   const toggleMaquila = () => setCheckedMaquila(!checkedMaquila);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const { data: lotesData, error: lotesError } = await supabase
-          .from("lotes")
-          .select("id_lote")
-          .order("id_lote", { ascending: false })
-          .limit(1);
+  const toggleSublote = () => setCheckedSublote(!checkedSublote);
 
-        if (lotesError) {
-          console.log("❌ Error obteniendo último lote:", lotesError);
-        } else if (lotesData && lotesData.length > 0) {
-          setLastLoteId(lotesData[0].id_lote + 1);
-        } else {
-          setLastLoteId(1);
+  const togglePesosDiferentes = () => {
+    setCheckedPesosDiferentes(!checkedPesosDiferentes);
+    setCheckedPesosIguales(false);
+  };
+
+  const togglePesosIguales = () => {
+    setCheckedPesosIguales(!checkedPesosIguales);
+    setCheckedPesosDiferentes(false);
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      const fetchData = async () => {
+        try {
+          const { data: lotesData, error: lotesError } = await supabase
+            .from("lotes")
+            .select("id_lote")
+            .order("id_lote", { ascending: false })
+            .limit(1);
+
+          if (lotesError) {
+            console.log("❌ Error obteniendo último lote:", lotesError);
+            setLastLoteId(1);
+          } else if (lotesData && lotesData.length > 0) {
+            setLastLoteId(lotesData[0].id_lote + 1);
+          } else {
+            setLastLoteId(1);
+          }
+
+          const { data: materialesData } = await supabase
+            .from("materiales")
+            .select("id_material, nombre_material");
+          setMateriales(materialesData || []);
+
+          const { data: clientesData } = await supabase
+            .from("clientes")
+            .select("id_cliente, nombre_cliente, empresa");
+          setClientes(clientesData || []);
+
+          const { data, error } = await supabase.auth.getUser();
+          if (error) throw error;
+
+          setUserId(data.user.id);
+        } catch (err) {
+          console.log("❌ Error inesperado:", err);
         }
+      };
 
-        const { data: materialesData } = await supabase
-          .from("materiales")
-          .select("id_material, nombre_material");
-
-        setMateriales(materialesData || []);
-
-        const { data: clientesData } = await supabase
-          .from("clientes")
-          .select("id_cliente, nombre_cliente, empresa");
-
-        setClientes(clientesData || []);
-
-        const { data, error } = await supabase.auth.getUser();
-
-        if (error) throw error;
-
-        setUserId(data.user.id);
-      } catch (err) {
-        console.log("❌ Error inesperado:", err);
-      }
-    };
-
-    fetchData();
-  }, []);
+      fetchData();
+    }, [])
+  );
 
   const reFetch = async () => {
     try {
@@ -143,10 +180,6 @@ export default function Add() {
         Alert.alert("Error", "Por favor selecciona un cliente");
         return;
       }
-      if (!peso || isNaN(parseFloat(peso)) || parseFloat(peso) <= 0) {
-        Alert.alert("Error", "Por favor ingresa un peso válido");
-        return;
-      }
       if (!checkedVenta && !checkedMaquila) {
         Alert.alert("Error", "Por favor selecciona un tipo de proceso");
         return;
@@ -154,6 +187,13 @@ export default function Add() {
 
       setLoading(true);
       const pesoNumerico = parseFloat(peso);
+
+      if (checkedSublote && (!numeroDeSublotes || isNaN(parseInt(numeroDeSublotes)) || parseInt(numeroDeSublotes) <= 0)) {
+        Alert.alert("Error", "Por favor ingresa un número de sublotes válido");
+        return;
+      }
+
+      const numeroSublotes = parseInt(numeroDeSublotes) || null;
 
       const { error: insertError } = await supabase.from("lotes").insert({
         id_lote: lastLoteId,
@@ -166,6 +206,7 @@ export default function Add() {
         estado_actual: "Recibido",
         peso_final_kg: null,
         created_by: userId,
+        numero_de_sublotes: checkedSublote ? numeroSublotes : 0,
       });
 
       if (insertError) {
@@ -231,9 +272,11 @@ export default function Add() {
         return;
       }
 
-      const _ = await fetch(`https://n8n.srv1034345.hstgr.cloud/webhook/fcb03570-1335-4d18-a8e3-824ef86d3ef9?id_lote=${lastLoteId}`, {
-        method: "POST",
-      });
+      /*
+        const _ = await fetch(`https://n8n.srv1034345.hstgr.cloud/webhook/fcb03570-1335-4d18-a8e3-824ef86d3ef9?id_lote=${lastLoteId}`, {
+          method: "POST",
+        });
+      */
 
       const fotosValidas = photos.filter((photo) => photo !== null && photo !== "");
       const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -394,6 +437,88 @@ export default function Add() {
               onChangeText={setPeso}
             />
           </View>
+          <View className="flex flex-row w-full mb-4">
+            <TouchableOpacity
+              onPress={toggleSublote}
+              className="flex flex-row justify-center items-center"
+              activeOpacity={0.7}
+            >
+              <Text
+                className={
+                  checkedSublote
+                    ? `ml-2 rounded-lg py-3 w-full text-center bg-green-800 text-white text-xl font-ibm-condensed-regular`
+                    : `ml-2 rounded-lg py-3 w-full text-center bg-green-600 text-white text-xl font-ibm-condensed-regular`
+                }
+              >
+                Sublotes
+              </Text>
+            </TouchableOpacity>
+          </View>
+          {checkedSublote ? (
+            <>
+              <Text className="mt-3 pb-1 text-2xl font-ibm-devanagari-bold">
+                Número de sublotes
+              </Text>
+              <View className="flex flex-row w-full pb-5">
+                <TextInput
+                  className="border-2 w-full py-4 px-2 border-black rounded-lg"
+                  placeholder="Ingresa el número de sublotes"
+                  keyboardType="numeric"
+                  value={numeroDeSublotes}
+                  onChangeText={setNumeroDeSublotes}
+                />
+              </View>
+
+              <View className="flex flex-row w-full mb-5">
+                <TouchableOpacity
+                  onPress={togglePesosDiferentes}
+                  className="flex flex-row justify-center w-1/2 items-center"
+                  activeOpacity={0.7}
+                >
+                  <CheckBox
+                    value={checkedPesosDiferentes}
+                    onValueChange={setCheckedPesosDiferentes}
+                  />
+                  <Text className="ml-2 text-xl font-ibm-condensed-regular">
+                    Pesos diferentes
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={togglePesosIguales}
+                  className="flex flex-row justify-center w-1/2 items-center"
+                  activeOpacity={0.7}
+                >
+                  <CheckBox
+                    value={checkedPesosIguales}
+                    onValueChange={setCheckedPesosIguales}
+                  />
+                  <Text className="ml-2 text-xl font-ibm-condensed-regular">
+                    Pesos iguales
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </>
+          ) : null}
+
+          {checkedPesosDiferentes && sublotes.length > 0 && (
+            <>
+              {sublotes.map((sub, index) => (
+                <View key={index} className="mb-4">
+                  <Text className="text-2xl font-ibm-devanagari-bold">
+                    Ingresa el peso del sublote #{sub.numero}
+                  </Text>
+                  <TextInput
+                    className="border-2 w-full py-4 px-2 border-black rounded-lg"
+                    placeholder={`Peso del sublote #${sub.numero}`}
+                    keyboardType="numeric"
+                    value={sub.peso}
+                    onChangeText={(text) => handlePesoChange(index, text)}
+                  />
+                </View>
+              ))}
+            </>
+          )}
           <Text className="text-2xl font-ibm-devanagari-bold">
             Cliente
           </Text>
