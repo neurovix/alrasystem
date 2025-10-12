@@ -1,5 +1,5 @@
 import icons from "@/constants/icons";
-import { supabase } from "@/lib/supabase"; // Adjust import path to your Supabase client setup
+import { supabase } from "@/lib/supabase";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 import { Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
@@ -29,55 +29,48 @@ function createPieSlice(
 }
 
 export default function Home() {
-  const [dataLotes, setDataLotes] = useState([{}]);
-  const [dataMerma, setDataMerma] = useState([{}]);
+  const [dataLotes, setDataLotes] = useState<Array<{ label: string, value: number, color: string }>>([]);
   const [totalLotes, setTotalLotes] = useState(0);
-  const [totalMerma, setTotalMerma] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useFocusEffect(
     useCallback(() => {
       async function fetchData() {
         try {
-          // Fetch lotes status
-          const { data: lotesData, error: lotesError } = await supabase
+          setLoading(true);
+
+          const now = new Date();
+          const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+          const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+
+          const firstDayISO = firstDay.toISOString();
+          const lastDayISO = lastDay.toISOString();
+
+          const { count: enProcesoCount, error: error1 } = await supabase
             .from("lotes")
-            .select("estado_actual");
+            .select("*", { count: "exact", head: true })
+            .not("estado_actual", "eq", "Finalizado")
+            .gte("fecha_recibido", firstDayISO)
+            .lte("fecha_recibido", lastDayISO);
 
-          if (lotesError) throw lotesError;
+          if (error1) throw error1;
 
-          const lotesCount = lotesData.reduce(
-            (acc, lote) => {
-              acc[lote.estado_actual === "Finalizado" ? "finalizados" : "enProceso"]++;
-              return acc;
-            },
-            { enProceso: 0, finalizados: 0 }
-          );
+          const { count: finalizadosCount, error: error2 } = await supabase
+            .from("lotes")
+            .select("*", { count: "exact", head: true })
+            .eq("estado_actual", "Finalizado")
+            .gte("fecha_recibido", firstDayISO)
+            .lte("fecha_recibido", lastDayISO);
+
+          if (error2) throw error2;
+
+          const total = (enProcesoCount || 0) + (finalizadosCount || 0);
+          setTotalLotes(total);
 
           setDataLotes([
-            { label: "En proceso", value: lotesCount.enProceso, color: "#eab308" },
-            { label: "Finalizados", value: lotesCount.finalizados, color: "#059669" },
+            { label: "En proceso", value: enProcesoCount || 0, color: "#eab308" },
+            { label: "Finalizados", value: finalizadosCount || 0, color: "#059669" },
           ]);
-          setTotalLotes(lotesCount.enProceso + lotesCount.finalizados);
-
-          // Fetch merma data from procesos
-          const { data: procesosData, error: procError } = await supabase
-            .from("procesos")
-            .select("merma_kg, tipo_proceso");
-
-          if (procError) throw procError;
-
-          const mermaTotal = procesosData.reduce((acc, proc) => acc + (proc.merma_kg || 0), 0);
-          const mermaEnProceso = procesosData
-            .filter((proc) => ["Molienda", "Peletizado"].includes(proc.tipo_proceso))
-            .reduce((acc, proc) => acc + (proc.merma_kg || 0), 0);
-          const mermaFinalizada = mermaTotal - mermaEnProceso;
-
-          setDataMerma([
-            { label: "En proceso", value: mermaEnProceso, color: "#15803d" },
-            { label: "Finalizados", value: mermaFinalizada, color: "#b91c1c" },
-          ]);
-          setTotalMerma(mermaTotal);
         } catch (error) {
           console.error("Error fetching data:", error);
         } finally {
@@ -86,37 +79,45 @@ export default function Home() {
       }
 
       fetchData();
-    }, []));
+    }, [])
+  );
+
 
   let startAngleLote = 0;
-  const slicesLote = dataLotes.map((item, index) => {
-    const angle = (item.value / totalLotes) * 2 * Math.PI;
-    const slice = createPieSlice(
-      75,
-      75,
-      70,
-      startAngleLote,
-      startAngleLote + angle,
-      item.color
-    );
-    startAngleLote += angle;
-    return <G key={index}>{slice}</G>;
-  });
+  const validData = dataLotes.filter(item => item.value > 0);
 
-  let startAngleMerma = 0;
-  const slicesMerma = dataMerma.map((item, index) => {
-    const angle = (item.value / totalMerma) * 2 * Math.PI;
-    const slice = createPieSlice(
-      75,
-      75,
-      70,
-      startAngleMerma,
-      startAngleMerma + angle,
-      item.color
-    );
-    startAngleMerma += angle;
-    return <G key={index}>{slice}</G>;
-  });
+  let slicesLote: any[] = [];
+
+  if (totalLotes > 0) {
+    if (validData.length === 1) {
+      // 👇 Si solo hay un tipo de lote (por ejemplo, solo "En proceso")
+      slicesLote = [
+        <Circle
+          key="full"
+          cx="75"
+          cy="75"
+          r="70"
+          fill={validData[0].color}
+        />,
+      ];
+    } else {
+      // 👇 Caso normal con varios segmentos
+      slicesLote = validData.map((item, index) => {
+        const angle = (item.value / totalLotes) * 2 * Math.PI;
+        const slice = createPieSlice(
+          75,
+          75,
+          70,
+          startAngleLote,
+          startAngleLote + angle,
+          item.color
+        );
+        startAngleLote += angle;
+        return <G key={index}>{slice}</G>;
+      });
+    }
+  }
+
 
   if (loading) {
     return (

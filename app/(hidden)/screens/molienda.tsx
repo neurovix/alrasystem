@@ -34,7 +34,9 @@ export default function Molienda() {
   const [selectedLote, setSelectedLote] = useState("");
   const [userId, setUserId] = useState<any>(null);
   const [material, setMaterial] = useState<number | any>(0);
-  const [sublotes, setSublotes] = useState<[{}]>([{}]);
+  const [sublotes, setSublotes] = useState<any[]>([]);
+  const [selectedSublote, setSelectedSublote] = useState<any>(null);
+  const [tieneSublotes, setTieneSublotes] = useState(false);
 
   const takePicture = async () => {
     if (cameraRef.current && activeIndex !== null) {
@@ -73,7 +75,6 @@ export default function Molienda() {
       };
 
       if (selectedLote && peso) {
-        // La merma es la diferencia entre el peso final del lote y el peso ingresado
         setMerma(Number(selectedLote.peso_entrada_kg) - Number(peso));
       } else {
         setMerma(0);
@@ -84,18 +85,21 @@ export default function Molienda() {
   );
 
   const handleSave = async () => {
-    const { data: processData, error: insertError } = await supabase.from("procesos")
+    const { data: processData, error: insertError } = await supabase
+      .from("procesos")
       .insert({
         id_lote: selectedLote?.id_lote,
+        id_sublote: tieneSublotes ? selectedSublote?.id_sublote : null,
         tipo_proceso: "Molienda",
         peso_salida_kg: peso,
-        merma_kg: merma,
+        merma_kg: tieneSublotes ? null : merma,
         fecha_proceso: new Date().toISOString(),
         id_cliente: selectedLote?.id_cliente,
         created_by: userId,
       })
       .select("id_proceso")
       .single();
+
 
     const lastProcessId = processData?.id_proceso;
 
@@ -113,21 +117,55 @@ export default function Molienda() {
         fecha: new Date().toISOString(),
         id_lote: selectedLote?.id_lote,
         created_by: userId,
+        id_sublote: tieneSublotes ? selectedSublote?.id_sublote : null,
       })
 
     if (historialError) {
-      Alert.alert("Error al insertar el movimiento en el historial");
+      Alert.alert("Error al insertar el movimiento en el historial" + historialError);
+      console.log(historialError);
       return;
     }
 
-    const { error: updateError } = await supabase.from("lotes")
+    if (!tieneSublotes) {
+      // Si no hay sublotes, el lote pasa directo a molienda
+      await supabase
+        .from("lotes")
+        .update({ estado_actual: "Molienda" })
+        .eq("id_lote", selectedLote.id_lote);
+    } else {
+      // Trae todos los sublotes actualizados del lote
+      const { data: sublotesData, error: subError } = await supabase
+        .from("sublotes")
+        .select("id_sublote, estado_actual")
+        .eq("id_lote", selectedLote.id_lote);
+
+      if (subError) {
+        console.log("Error al traer sublotes:", subError);
+        return;
+      }
+
+      // Filtra los sublotes que todavía no han sido molidos
+      const sublotesPendientes = sublotesData?.filter(
+        (s: any) => s.estado_actual !== "Molienda" && s.estado_actual !== "Finalizado"
+      );
+
+      // Si solo queda el sublote actual (es decir, pendientes === 1), actualiza el lote
+      if (sublotesPendientes && sublotesPendientes.length === 1) {
+        await supabase
+          .from("lotes")
+          .update({ estado_actual: "Molienda" })
+          .eq("id_lote", selectedLote.id_lote);
+      }
+    }
+
+    const { error: sublotesUpdateError } = await supabase.from("sublotes")
       .update({
         estado_actual: "Molienda",
       })
-      .eq("id_lote", selectedLote?.id_lote);
+      .eq("id_sublote", selectedSublote.id_sublote);
 
-    if (updateError) {
-      Alert.alert("Error", "Error al actualizar el estado del lote")
+    if (sublotesUpdateError) {
+      Alert.alert("Error", "Error al actualizar los sublotes");
       return;
     }
 
@@ -140,7 +178,7 @@ export default function Molienda() {
 
     const { error: materialError } = await supabase.from("materiales")
       .update({
-        cantidad_disponible_kg: Number(cantidadMaterial) - merma,
+        cantidad_disponible_kg: Number(cantidadMaterial) - peso,
       })
       .eq("id_material", selectedLote?.id_material);
 
@@ -187,7 +225,10 @@ export default function Molienda() {
 
           const fileExt = photoUri.split(".").pop()?.toLowerCase() || "jpg";
           const contentType = fileExt === "png" ? "image/png" : "image/jpeg";
-          const filePath = `lotes/${selectedLote.id_lote}/${lastProcessId}/foto_${i + 1}.${fileExt}`;
+          const filePath = tieneSublotes
+            ? `lotes/${selectedLote.id_lote}/${selectedSublote.id_sublote}/${lastProcessId}/foto_${i + 1}.${fileExt}`
+            : `lotes/${selectedLote.id_lote}/${lastProcessId}/foto_${i + 1}.${fileExt}`;
+
 
           const { error: uploadError } = await supabase.storage
             .from("lotes")
@@ -210,6 +251,7 @@ export default function Molienda() {
 
           const { error: insertFotoError } = await supabase.from("fotos").insert({
             id_lote: selectedLote.id_lote,
+            id_sublote: tieneSublotes ? selectedSublote?.id_sublote : null,
             id_proceso: lastProcessId,
             url_foto: publicUrl,
           });
@@ -253,7 +295,6 @@ export default function Molienda() {
       };
 
       if (selectedLote && peso) {
-        // La merma es la diferencia entre el peso final del lote y el peso ingresado
         setMerma(Number(selectedLote.peso_entrada_kg) - Number(peso));
       } else {
         setMerma(0);
@@ -266,11 +307,33 @@ export default function Molienda() {
   const handleLoteChange = async (idLote: any) => {
     const loteObj = lotes.find((l) => l.id_lote === idLote);
     setSelectedLote(loteObj || null);
+    setSelectedSublote(null);
+    setSublotes([]);
+    setTieneSublotes(false);
 
     if (loteObj) {
-      
+      const { data: sublotesData, error: subError } = await supabase
+        .from("sublotes")
+        .select("id_sublote, nombre_sublote, peso_sublote_kg")
+        .eq("id_lote", loteObj.id_lote)
+        .eq("estado_actual", "Recibido")
+        .order("nombre_sublote", { ascending: true });
+
+      if (subError) {
+        console.error("❌ Error al obtener sublotes:", subError);
+        return;
+      }
+
+      if (sublotesData && sublotesData.length > 0) {
+        setSublotes(sublotesData);
+        setTieneSublotes(true);
+      } else {
+        setTieneSublotes(false);
+      }
+
+      setMaterial(loteObj.id_material);
     }
-  }
+  };
 
   return (
     <SafeAreaView className="bg-green-600 flex-1">
@@ -283,7 +346,6 @@ export default function Molienda() {
         </Text>
       </View>
 
-      {/* 🔑 Manejo de permisos sin cortar hooks */}
       {!permission ? (
         <View className="flex-1 items-center justify-center">
           <Text>Cargando permisos...</Text>
@@ -331,6 +393,34 @@ export default function Molienda() {
             </Picker>
           </View>
 
+          {tieneSublotes && sublotes.length > 0 && (
+            <>
+              <Text className="mt-3 pb-1 text-2xl font-ibm-devanagari-bold">
+                Selecciona un sublote
+              </Text>
+              <View className="border-2 border-black rounded-xl mt-2">
+                <Picker
+                  selectedValue={selectedSublote?.id_sublote || ""}
+                  onValueChange={(idSublote) => {
+                    const subObj = sublotes.find((s) => s.id_sublote === idSublote);
+                    setSelectedSublote(subObj || null);
+                  }}
+                  style={Platform.OS === "ios" ? styles.pickerIOS : styles.picker}
+                >
+                  <Picker.Item label="Selecciona un sublote" value="" />
+                  {sublotes.map((s) => (
+                    <Picker.Item
+                      key={s.id_sublote}
+                      label={`${s.nombre_sublote} (${s.peso_sublote_kg} kg)`}
+                      value={s.id_sublote}
+                    />
+                  ))}
+                </Picker>
+              </View>
+            </>
+          )}
+
+
           <Text className="mt-3 pb-1 text-2xl font-ibm-devanagari-bold">
             Peso de salida
           </Text>
@@ -345,22 +435,12 @@ export default function Molienda() {
             />
           </View>
 
-          <View className="mb-4 flex flex-row">
-            <Text className="font-ibm-devanagari-bold">Merma: </Text>
-            <Text className="font-ibm-devanagari-regular text-red-600">{merma} kg</Text>
-          </View>
-
-          {sublotes.length > 0 ? (
-            <>
-            
-            </>
-            ) :
-            (
-            <>
-            
-            </>
-            )
-          }
+          {!tieneSublotes && (
+            <View className="mb-4 flex flex-row">
+              <Text className="font-ibm-devanagari-bold">Merma: </Text>
+              <Text className="font-ibm-devanagari-regular text-red-600">{merma} kg</Text>
+            </View>
+          )}
 
           <Text className="text-2xl font-ibm-devanagari-bold">Fotos</Text>
           <View className="flex flex-row flex-wrap w-full mt-3 justify-center">

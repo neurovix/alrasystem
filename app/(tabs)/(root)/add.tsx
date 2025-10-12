@@ -56,7 +56,6 @@ export default function Add() {
     }
   }, [numeroDeSublotes, checkedPesosDiferentes]);
 
-  // ✅ Maneja cambios en cada input de peso
   const handlePesoChange = (index: any, value: any) => {
     const nuevos = [...sublotes];
     nuevos[index].peso = value;
@@ -116,6 +115,7 @@ export default function Add() {
           const { data: materialesData } = await supabase
             .from("materiales")
             .select("id_material, nombre_material");
+
           setMateriales(materialesData || []);
 
           const { data: clientesData } = await supabase
@@ -145,6 +145,8 @@ export default function Add() {
       setCheckedMaquila(false);
       setPhotos(Array(6).fill(null));
       setActiveIndex(null);
+      setCheckedSublote(false);
+      setNumeroDeSublotes("0");
 
       const { data: lotesData, error: lotesError } = await supabase
         .from("lotes")
@@ -214,6 +216,51 @@ export default function Add() {
         Alert.alert("Error", "No se pudo guardar el lote: " + insertError.message);
         return;
       }
+
+      if (checkedSublote) {
+        const numSublotes = parseInt(numeroDeSublotes);
+        const pesoNumerico = parseFloat(peso);
+
+        if (!numSublotes || numSublotes <= 0) {
+          Alert.alert("Error", "Número de sublotes inválido");
+          return;
+        }
+
+        let sublotesAInsertar: any[] = [];
+
+        if (checkedPesosDiferentes) {
+          sublotesAInsertar = sublotes.map((sub) => ({
+            id_lote: lastLoteId,
+            nombre_sublote: `SL-${sub.numero}`,
+            peso_sublote_kg: parseFloat(sub.peso) || 0,
+            fecha_creado: new Date().toISOString(),
+            estado_actual: "Recibido",
+            created_by: userId,
+          }));
+        } else if (checkedPesosIguales) {
+          const pesoPorSublote = pesoNumerico / numSublotes;
+
+          sublotesAInsertar = Array.from({ length: numSublotes }, (_, i) => ({
+            id_lote: lastLoteId,
+            nombre_sublote: `SL-${i + 1}`,
+            peso_sublote_kg: pesoPorSublote,
+            fecha_creado: new Date().toISOString(),
+            estado_actual: "Recibido",
+            created_by: userId,
+          }));
+        }
+
+        const { error: sublotesError } = await supabase
+          .from("sublotes")
+          .insert(sublotesAInsertar);
+
+        if (sublotesError) {
+          console.log("❌ Error insertando sublotes:", sublotesError);
+          Alert.alert("Error", "No se pudieron guardar los sublotes");
+          return;
+        }
+      }
+
 
       const { data: procesoData, error: procesoError } = await supabase
         .from("procesos")
