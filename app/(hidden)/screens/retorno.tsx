@@ -4,8 +4,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import * as FileSystem from 'expo-file-system/legacy';
-import { router } from "expo-router";
-import { useEffect, useRef, useState } from "react";
+import { router, useFocusEffect } from "expo-router";
+import { useCallback, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -35,43 +35,47 @@ export default function Retorno() {
   const [material, setMaterial] = useState<number | any>(0);
   const [clientes, setClientes] = useState<any[]>([]);
   const [selectedCliente, setSelectedCliente] = useState("");
+  const [sublotes, setSublotes] = useState<any[]>([]);
+  const [selectedSublote, setSelectedSublote] = useState<any>(null);
+  const [tieneSublotes, setTieneSublotes] = useState(false);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      const { data: loteData, error: loteError } = await supabase
-        .from("lotes")
-        .select("id_lote,nombre_lote,peso_final_kg,id_material,id_cliente")
-        .not("estado_actual", "in", "(Finalizado,Retorno,Recibido,Venta)");
+  useFocusEffect(
+    useCallback(() => {
+      const fetchData = async () => {
+        const { data: loteData, error: loteError } = await supabase
+          .from("lotes")
+          .select("id_lote,nombre_lote,peso_final_kg,id_material,id_cliente")
+          .not("estado_actual", "in", "(Finalizado,Retorno,Recibido,Venta)");
 
-      if (loteError) {
-        Alert.alert("Error", "Error al obtener los lotes: " + loteError.message);
-        return;
-      }
+        if (loteError) {
+          Alert.alert("Error", "Error al obtener los lotes: " + loteError.message);
+          return;
+        }
 
-      setLotes(loteData || []);
+        setLotes(loteData || []);
 
-      if (selectedLote) {
-        setMaterial(selectedLote.id_material);
-      }
+        if (selectedLote) {
+          setMaterial(selectedLote.id_material);
+        }
 
-      const { data: userData, error: userError } = await supabase.auth.getUser();
-      if (!userError) {
-        setUserId(userData.user.id);
-      }
+        const { data: userData, error: userError } = await supabase.auth.getUser();
+        if (!userError) {
+          setUserId(userData.user.id);
+        }
 
-      const { data: clientsData, error: clientsError } = await supabase.from("clientes")
-        .select("id_cliente,empresa");
+        const { data: clientsData, error: clientsError } = await supabase.from("clientes")
+          .select("id_cliente,empresa");
 
-      if (clientsError) {
-        Alert.alert("Error", "Error al obtener los clientes");
-        return;
-      }
+        if (clientsError) {
+          Alert.alert("Error", "Error al obtener los clientes");
+          return;
+        }
 
-      setClientes(clientsData);
-    };
+        setClientes(clientsData);
+      };
 
-    fetchData();
-  }, [selectedLote]);
+      fetchData();
+    }, [selectedLote]));
 
   const takePicture = async () => {
     if (cameraRef.current && activeIndex !== null) {
@@ -90,21 +94,10 @@ export default function Retorno() {
   };
 
   const handleSave = async () => {
-    const { error: updateError } = await supabase.from("lotes")
-      .update({
-        estado_actual: "Finalizado",
-        peso_final_kg: peso,
-      })
-      .eq("id_lote", selectedLote?.id_lote);
-
-    if (updateError) {
-      Alert.alert("Error", "Error al actualizar el estado del lote");
-      throw updateError;
-    }
-
     const { data: processData, error: insertError } = await supabase.from("procesos")
       .insert({
         id_lote: selectedLote?.id_lote,
+        id_sublote: tieneSublotes ? selectedSublote?.id_sublote : null,
         tipo_proceso: "Retorno",
         peso_salida_kg: peso,
         merma_kg: null,
@@ -131,11 +124,51 @@ export default function Retorno() {
         fecha: new Date().toISOString(),
         id_lote: selectedLote?.id_lote,
         created_by: userId,
+        id_sublote: tieneSublotes ? selectedSublote?.id_sublote : null,
       })
 
     if (historialError) {
       Alert.alert("Error al insertar el movimiento en el historial");
       return;
+    }
+
+    if (!tieneSublotes) {
+      await supabase
+        .from("lotes")
+        .update({ estado_actual: "Finalizado" })
+        .eq("id_lote", selectedLote.id_lote);
+    } else {
+      const { data: sublotesData, error: subError } = await supabase
+        .from("sublotes")
+        .select("id_sublote, estado_actual")
+        .eq("id_lote", selectedLote.id_lote);
+
+      if (subError) {
+        console.log("Error al traer sublotes:", subError);
+        return;
+      }
+
+      const sublotesPendientes = sublotesData?.filter(
+        (s: any) => s.estado_actual !== "Finalizado"
+      );
+
+      if (sublotesPendientes && sublotesPendientes.length === 1) {
+        await supabase
+          .from("lotes")
+          .update({ estado_actual: "Finalizado" })
+          .eq("id_lote", selectedLote.id_lote);
+      }
+
+      const { error: sublotesUpdateError } = await supabase.from("sublotes")
+        .update({
+          estado_actual: "Finalizado",
+        })
+        .eq("id_sublote", selectedSublote.id_sublote);
+
+      if (sublotesUpdateError) {
+        Alert.alert("Error", "Error al actualizar los sublotes" + sublotesUpdateError);
+        return;
+      }
     }
 
     const { data: materialData, error: matError } = await supabase.from("materiales")
@@ -192,7 +225,9 @@ export default function Retorno() {
 
           const fileExt = photoUri.split(".").pop()?.toLowerCase() || "jpg";
           const contentType = fileExt === "png" ? "image/png" : "image/jpeg";
-          const filePath = `lotes/${selectedLote.id_lote}/${lastProcessId}/foto_${i + 1}.${fileExt}`;
+          const filePath = tieneSublotes
+            ? `lotes/${selectedLote.id_lote}/${selectedSublote.id_sublote}/${lastProcessId}/foto_${i + 1}.${fileExt}`
+            : `lotes/${selectedLote.id_lote}/${lastProcessId}/foto_${i + 1}.${fileExt}`;
 
           const { error: uploadError } = await supabase.storage
             .from("lotes")
@@ -217,6 +252,7 @@ export default function Retorno() {
             id_lote: selectedLote.id_lote,
             id_proceso: lastProcessId,
             url_foto: publicUrl,
+            id_sublote: tieneSublotes ? selectedSublote?.id_sublote : null,
           });
 
           if (insertFotoError) {
@@ -230,7 +266,7 @@ export default function Retorno() {
         }
       }
 
-      Alert.alert("Éxito", "✅ Retorno a planta guardado correctamente");
+      Alert.alert("Éxito", "✅ Maquilado guardado correctamente");
       await reFetch();
       router.push("/(tabs)/(root)");
     } catch (err) {
@@ -257,6 +293,37 @@ export default function Retorno() {
       };
     } catch (err) {
       console.log("❌ Error en reFetch:", err);
+    }
+  };
+
+  const handleLoteChange = async (idLote: any) => {
+    const loteObj = lotes.find((l) => l.id_lote === idLote);
+    setSelectedLote(loteObj || null);
+    setSelectedSublote(null);
+    setSublotes([]);
+    setTieneSublotes(false);
+
+    if (loteObj) {
+      const { data: sublotesData, error: subError } = await supabase
+        .from("sublotes")
+        .select("id_sublote, nombre_sublote, peso_sublote_kg")
+        .eq("id_lote", loteObj.id_lote)
+        .in("estado_actual", ["Molienda", "Peletizado"])
+        .order("nombre_sublote", { ascending: true });
+
+      if (subError) {
+        console.error("❌ Error al obtener sublotes:", subError);
+        return;
+      }
+
+      if (sublotesData && sublotesData.length > 0) {
+        setSublotes(sublotesData);
+        setTieneSublotes(true);
+      } else {
+        setTieneSublotes(false);
+      }
+
+      setMaterial(loteObj.id_material);
     }
   };
 
@@ -304,79 +371,7 @@ export default function Retorno() {
           <View className="border-2 border-black rounded-xl mt-2">
             <Picker
               selectedValue={selectedLote?.id_lote || ""}
-              onValueChange={async (itemValue) => {
-                const loteObj = lotes.find((l) => l.id_lote === itemValue);
-                setSelectedLote(loteObj || null);
-                setPeso(0);
-
-                if (!loteObj) return;
-
-                try {
-                  const { data: sublotesData, error: subError } = await supabase
-                    .from("sublotes")
-                    .select("id_sublote")
-                    .eq("id_lote", loteObj.id_lote);
-
-                  if (subError) {
-                    console.log("❌ Error obteniendo sublotes:", subError);
-                    return;
-                  }
-                  
-                  if (!sublotesData || sublotesData.length === 0) {
-                    const { data: procesoData, error: procesoError } = await supabase
-                      .from("procesos")
-                      .select("tipo_proceso,peso_salida_kg,fecha_proceso")
-                      .eq("id_lote", loteObj.id_lote)
-                      .in("tipo_proceso", ["Molienda", "Peletizado"])
-                      .order("fecha_proceso", { ascending: false })
-                      .limit(1)
-                      .maybeSingle();
-
-                    if (procesoError) {
-                      console.log("❌ Error obteniendo proceso:", procesoError);
-                      return;
-                    }
-
-                    if (procesoData) {
-                      setPeso(Number(procesoData.peso_salida_kg) || 0);
-                    }
-
-                    return;
-                  }
-
-                  const subloteIds = sublotesData.map((s) => s.id_sublote);
-
-                  const { data: procesosSub, error: procSubError } = await supabase
-                    .from("procesos")
-                    .select("id_sublote,tipo_proceso,peso_salida_kg,fecha_proceso")
-                    .in("id_sublote", subloteIds)
-                    .in("tipo_proceso", ["Molienda", "Peletizado"])
-                    .order("fecha_proceso", { ascending: true });
-
-                  if (procSubError) {
-                    console.log("❌ Error obteniendo procesos de sublotes:", procSubError);
-                    return;
-                  }
-
-                  if (procesosSub && procesosSub.length > 0) {
-                    const ultimoProcesoPorSublote = Object.values(
-                      procesosSub.reduce((acc, proceso) => {
-                        acc[proceso.id_sublote] = proceso;
-                        return acc;
-                      }, {})
-                    );
-
-                    const sumaPesos = ultimoProcesoPorSublote.reduce(
-                      (acc, p) => acc + (Number(p.peso_salida_kg) || 0),
-                      0
-                    );
-
-                    setPeso(Number(sumaPesos));
-                  }
-                } catch (err) {
-                  console.log("❌ Error al calcular peso de salida:", err);
-                }
-              }}
+              onValueChange={handleLoteChange}
               style={Platform.OS === "ios" ? styles.pickerIOS : styles.picker}
             >
               <Picker.Item label="Selecciona un lote" value="" />
@@ -389,6 +384,33 @@ export default function Retorno() {
               ))}
             </Picker>
           </View>
+
+          {tieneSublotes && sublotes.length > 0 && (
+            <>
+              <Text className="mt-3 pb-1 text-2xl font-ibm-devanagari-bold">
+                Selecciona un sublote
+              </Text>
+              <View className="border-2 border-black rounded-xl mt-2">
+                <Picker
+                  selectedValue={selectedSublote?.id_sublote || ""}
+                  onValueChange={(idSublote) => {
+                    const subObj = sublotes.find((s) => s.id_sublote === idSublote);
+                    setSelectedSublote(subObj || null);
+                  }}
+                  style={Platform.OS === "ios" ? styles.pickerIOS : styles.picker}
+                >
+                  <Picker.Item label="Selecciona un sublote" value="" />
+                  {sublotes.map((s) => (
+                    <Picker.Item
+                      key={s.id_sublote}
+                      label={`${s.nombre_sublote} (${s.peso_sublote_kg} kg)`}
+                      value={s.id_sublote}
+                    />
+                  ))}
+                </Picker>
+              </View>
+            </>
+          )}
 
           <Text className="mt-3 pb-1 text-2xl font-ibm-devanagari-bold">
             Peso de salida

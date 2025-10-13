@@ -152,17 +152,17 @@ export default function Molienda() {
           .update({ estado_actual: "Molienda" })
           .eq("id_lote", selectedLote.id_lote);
       }
-    }
 
-    const { error: sublotesUpdateError } = await supabase.from("sublotes")
-      .update({
-        estado_actual: "Molienda",
-      })
-      .eq("id_sublote", selectedSublote.id_sublote);
+      const { error: sublotesUpdateError } = await supabase.from("sublotes")
+        .update({
+          estado_actual: "Molienda",
+        })
+        .eq("id_sublote", selectedSublote.id_sublote);
 
-    if (sublotesUpdateError) {
-      Alert.alert("Error", "Error al actualizar los sublotes");
-      return;
+      if (sublotesUpdateError) {
+        Alert.alert("Error", "Error al actualizar los sublotes");
+        return;
+      }
     }
 
     const { data: materialData, error: matError } = await supabase.from("materiales")
@@ -411,7 +411,7 @@ export default function Molienda() {
               </View>
             </>
           )}
-          
+
           <Text className="mt-3 pb-1 text-2xl font-ibm-devanagari-bold">
             Peso de salida
           </Text>
