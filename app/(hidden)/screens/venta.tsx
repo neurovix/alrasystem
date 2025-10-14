@@ -5,12 +5,11 @@ import { Picker } from "@react-native-picker/picker";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import * as FileSystem from 'expo-file-system/legacy';
 import { router, useFocusEffect } from "expo-router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
-  Animated,
   Button,
-  Easing,
   Image,
   Platform,
   ScrollView,
@@ -39,6 +38,8 @@ export default function Venta() {
   const [sublotes, setSublotes] = useState<any[]>([]);
   const [selectedSublote, setSelectedSublote] = useState<any>(null);
   const [tieneSublotes, setTieneSublotes] = useState(false);
+  const [merma, setMerma] = useState<number>(0);
+  const [pesoProcesoAnterior, setPesoProcesoAnterior] = useState<number>(0);
 
   const takePicture = async () => {
     if (cameraRef.current && activeIndex !== null) {
@@ -71,8 +72,30 @@ export default function Venta() {
 
         setLotes(loteData || []);
 
-        if (selectedLote) {
+        if (selectedLote && peso > 0) {
           setMaterial(selectedLote.id_material);
+
+          const { data: processData, error: processError } = await supabase
+            .from("procesos")
+            .select("peso_salida_kg")
+            .eq("id_lote", selectedLote?.id_lote)
+            .order("fecha_proceso", { ascending: false })
+            .limit(1)
+            .single();
+
+          if (processError) {
+            Alert.alert("Error", "No se pudo obtener el peso del proceso anterior");
+            console.log(processError);
+            return;
+          } else {
+            setPesoProcesoAnterior(Number(processData.peso_salida_kg));
+          }
+        }
+
+        if (selectedLote && peso !== 0) {
+          setMerma(pesoProcesoAnterior - peso);
+        } else {
+          setMerma(0);
         }
 
         const { data: userData, error: userError } = await supabase.auth.getUser();
@@ -92,7 +115,7 @@ export default function Venta() {
       };
 
       fetchData();
-    }, [selectedLote]));
+    }, [selectedLote, peso]));
 
   const handleSave = async () => {
     const { data: processData, error: insertError } = await supabase.from("procesos")
@@ -101,7 +124,7 @@ export default function Venta() {
         id_sublote: tieneSublotes ? selectedSublote?.id_sublote : null,
         tipo_proceso: "Venta",
         peso_salida_kg: peso,
-        merma_kg: null,
+        merma_kg: merma,
         fecha_proceso: new Date().toISOString(),
         id_cliente: selectedLote?.id_cliente,
         created_by: userId,
@@ -181,12 +204,24 @@ export default function Venta() {
 
     const { error: materialError } = await supabase.from("materiales")
       .update({
-        cantidad_disponible_kg: Number(cantidadMaterial) - peso,
+        cantidad_disponible_kg: Number(cantidadMaterial) - peso - merma,
       })
       .eq("id_material", selectedLote?.id_material);
 
     if (materialError) {
       Alert.alert("Error", "Error al actualizar la cantidad de material");
+      return;
+    }
+
+    const { error: loteError } = await supabase.from("lotes")
+      .update({
+        peso_final_kg: peso,
+      })
+      .eq("id_lote", selectedLote?.id_lote);
+
+    if (loteError) {
+      Alert.alert("Error", "No se pudo guardar el peso final del lote");
+      console.log(loteError);
       return;
     }
 
@@ -307,7 +342,7 @@ export default function Venta() {
     if (loteObj) {
       const { data: sublotesData, error: subError } = await supabase
         .from("sublotes")
-        .select("id_sublote, nombre_sublote, peso_sublote_kg")
+        .select("id_sublote, nombre_sublote")
         .eq("id_lote", loteObj.id_lote)
         .in("estado_actual", ["Molienda", "Peletizado"])
         .order("nombre_sublote", { ascending: true });
@@ -327,32 +362,6 @@ export default function Venta() {
       setMaterial(loteObj.id_material);
     }
   };
-
-  const scaleAnim = useRef(new Animated.Value(1)).current;
-
-  useEffect(() => {
-    if (loading) {
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(scaleAnim, {
-            toValue: 1.2,
-            duration: 800,
-            easing: Easing.inOut(Easing.ease),
-            useNativeDriver: true,
-          }),
-          Animated.timing(scaleAnim, {
-            toValue: 1,
-            duration: 800,
-            easing: Easing.inOut(Easing.ease),
-            useNativeDriver: true,
-          }),
-        ])
-      ).start();
-    } else {
-      scaleAnim.stopAnimation();
-    }
-  }, [loading]);
-
 
   return (
     <SafeAreaView className="bg-green-600 flex-1">
@@ -430,7 +439,7 @@ export default function Venta() {
                   {sublotes.map((s) => (
                     <Picker.Item
                       key={s.id_sublote}
-                      label={`${s.nombre_sublote} (${s.peso_sublote_kg} kg)`}
+                      label={`${s.nombre_sublote}`}
                       value={s.id_sublote}
                     />
                   ))}
@@ -534,18 +543,8 @@ export default function Venta() {
             zIndex: 1000,
           }}
         >
-          <Animated.Image
-            source={require("@/assets/images/logo_alra.png")}
-            style={{
-              width: 120,
-              height: 120,
-              transform: [{ scale: scaleAnim }],
-            }}
-            resizeMode="contain"
-          />
-          <Text className="text-white mt-4 text-xl font-ibm-condensed-bold">
-            Guardando...
-          </Text>
+          <ActivityIndicator size="large" color="#fff" />
+          <Text className="text-white mt-3 text-xl">Guardando...</Text>
         </View>
       )}
     </SafeAreaView>

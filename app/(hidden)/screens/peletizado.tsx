@@ -5,7 +5,7 @@ import { Picker } from "@react-native-picker/picker";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import * as FileSystem from 'expo-file-system/legacy';
 import { router, useFocusEffect } from "expo-router";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -34,10 +34,10 @@ export default function Peletizado() {
   const [selectedLote, setSelectedLote] = useState("");
   const [userId, setUserId] = useState<any>(null);
   const [material, setMaterial] = useState<number | any>(0);
-  const [salidaMolienda, setSalidaMolienda] = useState<number | any>(0);
   const [sublotes, setSublotes] = useState<any[]>([]);
   const [selectedSublote, setSelectedSublote] = useState<any>(null);
   const [tieneSublotes, setTieneSublotes] = useState(false);
+  const [pesoMolienda, setPesoMolienda] = useState<any>(null);
 
   const takePicture = async () => {
     if (cameraRef.current && activeIndex !== null) {
@@ -58,32 +58,54 @@ export default function Peletizado() {
   useFocusEffect(
     useCallback(() => {
       const fetchData = async () => {
-        const { data: loteData } = await supabase.from("lotes")
-          .select("id_lote,nombre_lote,peso_entrada_kg,id_material,id_cliente,numero_de_sublotes")
+        const { data: loteData } = await supabase
+          .from("lotes")
+          .select("id_lote, nombre_lote, peso_entrada_kg, id_material, id_cliente, numero_de_sublotes")
           .not("estado_actual", "in", "(Finalizado,Peletizado)");
 
         setLotes(loteData || []);
 
         if (selectedLote) {
           setMaterial(selectedLote.id_material);
+
+          let query = supabase
+            .from("procesos")
+            .select("peso_salida_kg")
+            .eq("tipo_proceso", "Molienda")
+            .eq("id_lote", selectedLote.id_lote);
+
+          if (tieneSublotes && selectedSublote?.id_sublote) {
+            query = query.eq("id_sublote", selectedSublote.id_sublote);
+          }
+
+          const { data: processData, error: processError } = await query.maybeSingle();
+
+          if (processError) {
+            console.log("Error obteniendo molienda:", processError);
+            setPesoMolienda(0);
+          } else {
+            setPesoMolienda(processData?.peso_salida_kg || 0);
+          }
         }
 
         const { data, error } = await supabase.auth.getUser();
-
         if (error) throw error;
-
         setUserId(data.user.id);
       };
 
-      if (selectedLote && peso) {
-        setMerma(Number(selectedLote.peso_entrada_kg) - Number(peso));
-      } else {
-        setMerma(0);
-      }
-
       fetchData();
-    }, [selectedLote, peso])
+    }, [selectedLote, selectedSublote])
   );
+
+  useEffect(() => {
+    if (!selectedLote || peso <= 0) {
+      setMerma(0);
+      return;
+    }
+
+    setMerma(Number(pesoMolienda) - Number(peso));
+  }, [pesoMolienda, peso, selectedLote, selectedSublote]);
+
 
   const handleSave = async () => {
     const { data: processData, error: insertError } = await supabase
@@ -93,7 +115,7 @@ export default function Peletizado() {
         id_sublote: tieneSublotes ? selectedSublote?.id_sublote : null,
         tipo_proceso: "Peletizado",
         peso_salida_kg: peso,
-        merma_kg: tieneSublotes ? null : merma,
+        merma_kg: merma,
         fecha_proceso: new Date().toISOString(),
         id_cliente: selectedLote?.id_cliente,
         created_by: userId,
@@ -175,7 +197,7 @@ export default function Peletizado() {
 
     const { error: materialError } = await supabase.from("materiales")
       .update({
-        cantidad_disponible_kg: Number(cantidadMaterial) - peso,
+        cantidad_disponible_kg: Number(cantidadMaterial) - merma,
       })
       .eq("id_material", selectedLote?.id_material);
 
@@ -288,7 +310,9 @@ export default function Peletizado() {
       };
 
       if (selectedLote && peso) {
-        setMerma(Number(selectedLote.peso_entrada_kg) - Number(peso));
+        setMerma(Number(pesoMolienda) - peso);
+      } else if (selectedLote && selectedSublote && peso) {
+        setMerma(Number(pesoMolienda) - peso)
       } else {
         setMerma(0);
       }
@@ -307,7 +331,7 @@ export default function Peletizado() {
     if (loteObj) {
       const { data: sublotesData, error: subError } = await supabase
         .from("sublotes")
-        .select("id_sublote, nombre_sublote, peso_sublote_kg")
+        .select("id_sublote, nombre_sublote")
         .eq("id_lote", loteObj.id_lote)
         .in("estado_actual", ["Recibido", "Molienda"])
         .order("nombre_sublote", { ascending: true });
@@ -404,7 +428,7 @@ export default function Peletizado() {
                   {sublotes.map((s) => (
                     <Picker.Item
                       key={s.id_sublote}
-                      label={`${s.nombre_sublote} (${s.peso_sublote_kg} kg)`}
+                      label={`${s.nombre_sublote}`}
                       value={s.id_sublote}
                     />
                   ))}

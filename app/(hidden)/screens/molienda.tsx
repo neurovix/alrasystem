@@ -74,8 +74,10 @@ export default function Molienda() {
         setUserId(data.user.id);
       };
 
-      if (selectedLote && peso) {
-        setMerma(Number(selectedLote.peso_entrada_kg) - Number(peso));
+      if (selectedLote && selectedSublote && peso > 0) {
+        setMerma(Number(selectedSublote?.peso_sublote_kg) - peso);
+      } else if (selectedLote && peso > 0) {
+        setMerma(Number(selectedLote?.peso_entrada_kg) - peso);
       } else {
         setMerma(0);
       }
@@ -92,7 +94,7 @@ export default function Molienda() {
         id_sublote: tieneSublotes ? selectedSublote?.id_sublote : null,
         tipo_proceso: "Molienda",
         peso_salida_kg: peso,
-        merma_kg: tieneSublotes ? null : merma,
+        merma_kg: merma,
         fecha_proceso: new Date().toISOString(),
         id_cliente: selectedLote?.id_cliente,
         created_by: userId,
@@ -174,7 +176,7 @@ export default function Molienda() {
 
     const { error: materialError } = await supabase.from("materiales")
       .update({
-        cantidad_disponible_kg: Number(cantidadMaterial) - peso,
+        cantidad_disponible_kg: Number(cantidadMaterial) - merma,
       })
       .eq("id_material", selectedLote?.id_material);
 
@@ -306,7 +308,7 @@ export default function Molienda() {
     if (loteObj) {
       const { data: sublotesData, error: subError } = await supabase
         .from("sublotes")
-        .select("id_sublote, nombre_sublote, peso_sublote_kg")
+        .select("id_sublote, nombre_sublote")
         .eq("id_lote", loteObj.id_lote)
         .eq("estado_actual", "Recibido")
         .order("nombre_sublote", { ascending: true });
@@ -403,7 +405,7 @@ export default function Molienda() {
                   {sublotes.map((s) => (
                     <Picker.Item
                       key={s.id_sublote}
-                      label={`${s.nombre_sublote} (${s.peso_sublote_kg} kg)`}
+                      label={`${s.nombre_sublote}`}
                       value={s.id_sublote}
                     />
                   ))}

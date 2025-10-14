@@ -38,6 +38,8 @@ export default function Retorno() {
   const [sublotes, setSublotes] = useState<any[]>([]);
   const [selectedSublote, setSelectedSublote] = useState<any>(null);
   const [tieneSublotes, setTieneSublotes] = useState(false);
+  const [merma, setMerma] = useState<number>(0);
+  const [pesoProcesoAnterior, setPesoProcesoAnterior] = useState<number>(0);
 
   useFocusEffect(
     useCallback(() => {
@@ -54,8 +56,30 @@ export default function Retorno() {
 
         setLotes(loteData || []);
 
-        if (selectedLote) {
+        if (selectedLote && peso > 0) {
           setMaterial(selectedLote.id_material);
+
+          const { data: processData, error: processError } = await supabase
+            .from("procesos")
+            .select("peso_salida_kg")
+            .eq("id_lote", selectedLote?.id_lote)
+            .order("fecha_proceso", { ascending: false })
+            .limit(1)
+            .single();
+
+          if (processError) {
+            Alert.alert("Error", "No se pudo obtener el peso del proceso anterior");
+            console.log(processError);
+            return;
+          } else {
+            setPesoProcesoAnterior(Number(processData.peso_salida_kg));
+          }
+        }
+
+        if (selectedLote && peso !== 0) {
+          setMerma(pesoProcesoAnterior - peso);
+        } else {
+          setMerma(0);
         }
 
         const { data: userData, error: userError } = await supabase.auth.getUser();
@@ -75,7 +99,7 @@ export default function Retorno() {
       };
 
       fetchData();
-    }, [selectedLote]));
+    }, [selectedLote, peso]));
 
   const takePicture = async () => {
     if (cameraRef.current && activeIndex !== null) {
@@ -100,7 +124,7 @@ export default function Retorno() {
         id_sublote: tieneSublotes ? selectedSublote?.id_sublote : null,
         tipo_proceso: "Retorno",
         peso_salida_kg: peso,
-        merma_kg: null,
+        merma_kg: merma,
         fecha_proceso: new Date().toISOString(),
         id_cliente: selectedLote?.id_cliente,
         created_by: userId,
@@ -180,12 +204,24 @@ export default function Retorno() {
 
     const { error: materialError } = await supabase.from("materiales")
       .update({
-        cantidad_disponible_kg: Number(cantidadMaterial) - peso,
+        cantidad_disponible_kg: Number(cantidadMaterial) - peso - merma,
       })
       .eq("id_material", selectedLote?.id_material);
 
     if (materialError) {
       Alert.alert("Error", "Error al actualizar la cantidad de material");
+      return;
+    }
+
+    const { error: loteError } = await supabase.from("lotes")
+      .update({
+        peso_final_kg: peso,
+      })
+      .eq("id_lote", selectedLote?.id_lote);
+
+    if (loteError) {
+      Alert.alert("Error", "No se pudo guardar el peso final del lote");
+      console.log(loteError);
       return;
     }
 
@@ -249,7 +285,7 @@ export default function Retorno() {
           const publicUrl = publicUrlData.publicUrl;
 
           const { error: insertFotoError } = await supabase.from("fotos").insert({
-            id_lote: selectedLote.id_lote,
+            id_lote: selectedLote?.id_lote,
             id_proceso: lastProcessId,
             url_foto: publicUrl,
             id_sublote: tieneSublotes ? selectedSublote?.id_sublote : null,
@@ -284,7 +320,7 @@ export default function Retorno() {
       setPhotos(Array(6).fill(null));
       setSelectedCliente("");
 
-      const fetchData = async () => {
+      const _ = async () => {
         const { data: loteData } = await supabase.from("lotes")
           .select("id_lote,nombre_lote,peso_final_kg,id_material,id_cliente")
           .not("estado_actual", "in", "(Finalizado,Recibido,Retorno,Venta)");
@@ -306,7 +342,7 @@ export default function Retorno() {
     if (loteObj) {
       const { data: sublotesData, error: subError } = await supabase
         .from("sublotes")
-        .select("id_sublote, nombre_sublote, peso_sublote_kg")
+        .select("id_sublote, nombre_sublote")
         .eq("id_lote", loteObj.id_lote)
         .in("estado_actual", ["Molienda", "Peletizado"])
         .order("nombre_sublote", { ascending: true });
@@ -403,7 +439,7 @@ export default function Retorno() {
                   {sublotes.map((s) => (
                     <Picker.Item
                       key={s.id_sublote}
-                      label={`${s.nombre_sublote} (${s.peso_sublote_kg} kg)`}
+                      label={`${s.nombre_sublote}`}
                       value={s.id_sublote}
                     />
                   ))}
