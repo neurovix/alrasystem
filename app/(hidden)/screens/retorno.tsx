@@ -5,7 +5,7 @@ import { Picker } from "@react-native-picker/picker";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import * as FileSystem from 'expo-file-system/legacy';
 import { router, useFocusEffect } from "expo-router";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -44,62 +44,73 @@ export default function Retorno() {
   useFocusEffect(
     useCallback(() => {
       const fetchData = async () => {
-        const { data: loteData, error: loteError } = await supabase
-          .from("lotes")
-          .select("id_lote,nombre_lote,peso_final_kg,id_material,id_cliente")
-          .not("estado_actual", "in", "(Finalizado,Retorno,Recibido,Venta)");
+        try {
+          const { data: loteData, error: loteError } = await supabase
+            .from("lotes")
+            .select("id_lote, nombre_lote, peso_entrada_kg, id_material, id_cliente, numero_de_sublotes")
+            .not("estado_actual", "in", "(Finalizado,Retorno,Recibido,Venta)");
 
-        if (loteError) {
-          Alert.alert("Error", "Error al obtener los lotes: " + loteError.message);
-          return;
-        }
+          if (loteError) throw new Error(loteError.message);
+          setLotes(loteData || []);
 
-        setLotes(loteData || []);
+          if (selectedLote) {
+            setMaterial(selectedLote.id_material);
 
-        if (selectedLote && peso > 0) {
-          setMaterial(selectedLote.id_material);
+            let query = supabase
+              .from("procesos")
+              .select("peso_salida_kg, tipo_proceso")
+              .eq("id_lote", selectedLote.id_lote)
+              .in("tipo_proceso", ["Molienda", "Peletizado"])
+              .order("fecha_proceso", { ascending: false })
+              .limit(1);
 
-          const { data: processData, error: processError } = await supabase
-            .from("procesos")
-            .select("peso_salida_kg")
-            .eq("id_lote", selectedLote?.id_lote)
-            .order("fecha_proceso", { ascending: false })
-            .limit(1)
-            .single();
+            if (tieneSublotes && selectedSublote?.id_sublote) {
+              query = query.eq("id_sublote", selectedSublote.id_sublote);
+            }
 
-          if (processError) {
-            Alert.alert("Error", "No se pudo obtener el peso del proceso anterior");
-            console.log(processError);
-            return;
-          } else {
-            setPesoProcesoAnterior(Number(processData.peso_salida_kg));
+            const { data: processData, error: processError } = await query.maybeSingle();
+
+            if (processError) {
+              console.log("Error obteniendo proceso anterior:", processError);
+              setPesoProcesoAnterior(0);
+            } else {
+              setPesoProcesoAnterior(Number(processData?.peso_salida_kg || 0));
+            }
           }
+
+          const { data: userData, error: userError } = await supabase.auth.getUser();
+          if (userError) throw userError;
+          if (userData?.user) setUserId(userData.user.id);
+
+          const { data: clientesData, error: clientesError } = await supabase.from("clientes")
+            .select("id_cliente,empresa");
+
+          if (clientesError) {
+            Alert.alert("Error", "No se pudieron obtener los clientes");
+            console.log(clientesError);
+            return;
+          }
+
+          setClientes(clientesData);
+        } catch (err) {
+          Alert.alert("Error", err.message);
+          console.error(err);
         }
-
-        if (selectedLote && peso !== 0) {
-          setMerma(pesoProcesoAnterior - peso);
-        } else {
-          setMerma(0);
-        }
-
-        const { data: userData, error: userError } = await supabase.auth.getUser();
-        if (!userError) {
-          setUserId(userData.user.id);
-        }
-
-        const { data: clientsData, error: clientsError } = await supabase.from("clientes")
-          .select("id_cliente,empresa");
-
-        if (clientsError) {
-          Alert.alert("Error", "Error al obtener los clientes");
-          return;
-        }
-
-        setClientes(clientsData);
       };
 
       fetchData();
-    }, [selectedLote, peso]));
+    }, [selectedLote, selectedSublote])
+  );
+
+  useEffect(() => {
+    if (!selectedLote || peso <= 0) {
+      setMerma(0);
+      return;
+    }
+
+    const nuevaMerma = Number(pesoProcesoAnterior) - Number(peso);
+    setMerma(nuevaMerma > 0 ? nuevaMerma : 0);
+  }, [pesoProcesoAnterior, peso, selectedLote, selectedSublote]);
 
   const takePicture = async () => {
     if (cameraRef.current && activeIndex !== null) {
@@ -160,12 +171,12 @@ export default function Retorno() {
       await supabase
         .from("lotes")
         .update({ estado_actual: "Finalizado" })
-        .eq("id_lote", selectedLote.id_lote);
+        .eq("id_lote", selectedLote?.id_lote);
     } else {
       const { data: sublotesData, error: subError } = await supabase
         .from("sublotes")
         .select("id_sublote, estado_actual")
-        .eq("id_lote", selectedLote.id_lote);
+        .eq("id_lote", selectedLote?.id_lote);
 
       if (subError) {
         console.log("Error al traer sublotes:", subError);
@@ -176,24 +187,50 @@ export default function Retorno() {
         (s: any) => s.estado_actual !== "Finalizado"
       );
 
-      if (sublotesPendientes && sublotesPendientes.length === 1) {
-        await supabase
-          .from("lotes")
-          .update({ estado_actual: "Finalizado" })
-          .eq("id_lote", selectedLote.id_lote);
-      }
-
-      const { error: sublotesUpdateError } = await supabase.from("sublotes")
-        .update({
-          estado_actual: "Finalizado",
-        })
-        .eq("id_sublote", selectedSublote.id_sublote);
+      const { error: sublotesUpdateError } = await supabase
+        .from("sublotes")
+        .update({ estado_actual: "Finalizado" })
+        .eq("id_sublote", selectedSublote?.id_sublote);
 
       if (sublotesUpdateError) {
-        Alert.alert("Error", "Error al actualizar los sublotes" + sublotesUpdateError);
+        Alert.alert("Error", "Error al actualizar los sublotes: " + sublotesUpdateError.message);
         return;
       }
+
+      if (sublotesPendientes && sublotesPendientes.length === 1) {
+        const idsSublotes = sublotesData.map((s: any) => s.id_sublote);
+
+        const { data: procesosData, error: procesosError } = await supabase
+          .from("procesos")
+          .select("id_sublote, peso_salida_kg")
+          .in("id_sublote", idsSublotes)
+          .eq("tipo_proceso", "Retorno");
+
+        if (procesosError) {
+          console.log("Error al obtener pesos de procesos:", procesosError);
+          return;
+        }
+
+        const pesoTotal = procesosData?.reduce(
+          (total, p) => total + Number(p.peso_salida_kg || 0),
+          0
+        );
+
+        const { error: loteUpdateError } = await supabase
+          .from("lotes")
+          .update({
+            estado_actual: "Finalizado",
+            peso_final_kg: pesoTotal,
+          })
+          .eq("id_lote", selectedLote?.id_lote);
+
+        if (loteUpdateError) {
+          console.log("Error al actualizar el lote:", loteUpdateError);
+          return;
+        }
+      }
     }
+
 
     const { data: materialData, error: matError } = await supabase.from("materiales")
       .select("cantidad_disponible_kg")
@@ -213,16 +250,18 @@ export default function Retorno() {
       return;
     }
 
-    const { error: loteError } = await supabase.from("lotes")
-      .update({
-        peso_final_kg: peso,
-      })
-      .eq("id_lote", selectedLote?.id_lote);
+    if (!tieneSublotes) {
+      const { error: loteError } = await supabase.from("lotes")
+        .update({
+          peso_final_kg: peso,
+        })
+        .eq("id_lote", selectedLote?.id_lote);
 
-    if (loteError) {
-      Alert.alert("Error", "No se pudo guardar el peso final del lote");
-      console.log(loteError);
-      return;
+      if (loteError) {
+        Alert.alert("Error", "No se pudo guardar el peso final del lote");
+        console.log(loteError);
+        return;
+      }
     }
 
     try {
@@ -319,6 +358,7 @@ export default function Retorno() {
       setSelectedLote("");
       setPhotos(Array(6).fill(null));
       setSelectedCliente("");
+      setMerma(0);
 
       const _ = async () => {
         const { data: loteData } = await supabase.from("lotes")

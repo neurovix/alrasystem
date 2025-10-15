@@ -31,7 +31,7 @@ export default function Molienda() {
   const [photos, setPhotos] = useState<(string | null)[]>(Array(6).fill(null));
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const [lotes, setLotes] = useState<any[]>([]);
-  const [selectedLote, setSelectedLote] = useState("");
+  const [selectedLote, setSelectedLote] = useState<any>(null);
   const [userId, setUserId] = useState<any>(null);
   const [material, setMaterial] = useState<number | any>(0);
   const [sublotes, setSublotes] = useState<any[]>([]);
@@ -172,7 +172,17 @@ export default function Molienda() {
       .eq("id_material", selectedLote?.id_material)
       .single();
 
+    if (matError) {
+      console.log("Mat error:", matError);
+      return;
+    }
+
     const cantidadMaterial = materialData?.cantidad_disponible_kg;
+
+    if (!cantidadMaterial || isNaN(merma)) {
+      console.log("❌ Datos inválidos para actualizar material:", { cantidadMaterial, merma });
+      return;
+    }
 
     const { error: materialError } = await supabase.from("materiales")
       .update({
@@ -182,6 +192,7 @@ export default function Molienda() {
 
     if (materialError) {
       Alert.alert("Error", "Error al actualizar la cantidad de material");
+      console.log("Material error: ", materialError);
       return;
     }
 
@@ -308,7 +319,7 @@ export default function Molienda() {
     if (loteObj) {
       const { data: sublotesData, error: subError } = await supabase
         .from("sublotes")
-        .select("id_sublote, nombre_sublote")
+        .select("id_sublote, nombre_sublote, peso_sublote_kg")
         .eq("id_lote", loteObj.id_lote)
         .eq("estado_actual", "Recibido")
         .order("nombre_sublote", { ascending: true });

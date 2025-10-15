@@ -301,7 +301,7 @@ export default function Peletizado() {
       setPhotos(Array(6).fill(null));
       setMerma(0);
 
-      const fetchData = async () => {
+      const _ = async () => {
         const { data: loteData } = await supabase.from("lotes")
           .select("id_lote,nombre_lote,peso_entrada_kg,id_material,id_cliente,numero_de_sublotes")
           .not("estado_actual", "in", "(Finalizado,Peletizado)");
