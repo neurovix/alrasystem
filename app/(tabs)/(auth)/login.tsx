@@ -4,6 +4,7 @@ import { AntDesign } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
+  Alert,
   Image,
   Keyboard,
   KeyboardAvoidingView,
@@ -19,12 +20,11 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function LogIn() {
   const router = useRouter();
-
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
-
   const [error, setError] = useState<String | null>("");
   const [loading, setLoading] = useState(false);
+  const [userData, setUserData] = useState<{ estatus: boolean }>({ estatus: false });
 
   type LoginForm = {
     Email: string,
@@ -42,16 +42,40 @@ export default function LogIn() {
       });
 
       if (loginError) {
+        Alert.alert("Error", "Correo o contraseña incorrectos");
         throw loginError;
       }
 
+      const { data: perfil, error: perfilError } = await supabase
+        .from("usuarios")
+        .select("estatus")
+        .eq("email", data.Email)
+        .single();
+
+      if (perfilError) {
+        Alert.alert("Error", "No se pudo obtener el estatus del usuario");
+        console.log("Perfil error: ", perfilError);
+        return;
+      }
+
+      setUserData({ estatus: perfil.estatus });
+
+      if (!perfil.estatus) {
+        Alert.alert("Error", "No tienes permiso de acceso (login)");
+        await supabase.auth.signOut();
+        return;
+      }
+
+      Alert.alert("Éxito", "Inicio de sesión correcto");
+      router.replace("/(tabs)");
+
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Ha ocurrido un error")
+      setError(err instanceof Error ? err.message : "Ha ocurrido un error");
     } finally {
       setLoading(false);
     }
-  }
-  
+  };
+
   return (
     <SafeAreaView className="flex-1 bg-gray-100">
       <View className="pt-4 pl-4 z-10">
@@ -59,7 +83,7 @@ export default function LogIn() {
           <AntDesign name="left" size={30} color="green" />
         </TouchableOpacity>
       </View>
-      
+
       <KeyboardAvoidingView
         className="flex-1"
         behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -83,7 +107,7 @@ export default function LogIn() {
                   Inicio de sesion
                 </Text>
               </View>
-                       
+
               <View className="space-y-6">
                 <View>
                   <Text className="text-xl font-ibm-condensed-bold mb-3">Email</Text>
@@ -105,7 +129,7 @@ export default function LogIn() {
                     />
                   </View>
                 </View>
-                           
+
                 <View className="mt-4">
                   <Text className="text-xl font-ibm-condensed-bold mb-3">
                     Contraseña
@@ -127,7 +151,7 @@ export default function LogIn() {
                     />
                   </View>
                 </View>
-                           
+
                 <View className="pt-6">
                   <TouchableOpacity
                     className="bg-green-700 rounded-2xl py-4"

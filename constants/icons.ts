@@ -19,8 +19,9 @@ const icons = {
   maquila: require('@/assets/icons/maquila.png'),
   registerUser: require('@/assets/icons/register_user.png'),
   material: require('@/assets/icons/material.png'),
+  usuarios: require('@/assets/icons/usuario.png'),
 
-  camera: require("@/assets/icons/camera.png"),
+  camera: require('@/assets/icons/camera.png'),
 };
 
 export default icons;

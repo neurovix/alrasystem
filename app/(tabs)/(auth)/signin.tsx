@@ -62,13 +62,15 @@ export default function SignIn() {
       console.log(userID);
 
       if (userID) {
-        const { data: insertData, error: insertError } = await supabase
+        const { data: _, error: insertError } = await supabase
           .from("usuarios")
           .insert([
             {
               id_usuario: userID,
               nombre: data.Nombre,
+              email: data.Email,
               rol: data.Rol,
+              estatus: true,
             },
           ])
           .select();

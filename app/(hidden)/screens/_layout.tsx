@@ -15,6 +15,7 @@ export default function ScreensLayout() {
         <Stack.Screen name="clients" options={{ headerShown: false }} />
         <Stack.Screen name="lotes" options={{ headerShown: false }} />
         <Stack.Screen name="inventario" options={{ headerShown: false }} />
+        <Stack.Screen name="users" options={{ headerShown: false }} />
       </Stack>
       <StatusBar style="auto" />
     </ThemeProvider>

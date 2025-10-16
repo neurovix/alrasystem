@@ -25,7 +25,9 @@ CREATE TYPE tipo_movimiento AS ENUM ('Entrada', 'Salida', 'Ajuste');
 CREATE TABLE usuarios (
     id_usuario UUID PRIMARY KEY REFERENCES auth.users (id) ON DELETE CASCADE,
     nombre TEXT NOT NULL,
-    rol rol_usuario NOT NULL
+    email TEXT NOT NULL,
+    rol rol_usuario NOT NULL,
+    estatus BOOLEAN NOT NULL
 );
 
 -- 2. Clientes

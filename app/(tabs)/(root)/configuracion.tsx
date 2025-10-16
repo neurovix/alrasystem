@@ -165,7 +165,6 @@ export default function Configuracion() {
             </TouchableOpacity>
           </View>
 
-          {/* Footer Info */}
           <View className="mt-8 items-center">
             <Text className="text-gray-400 text-sm">
               Versión 1.0.0
