@@ -12,68 +12,69 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-export default function LoteInformation() {
+export default function SubloteInformation() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const [lote, setLote] = useState<any>(null);
+  const [sublote, setSublote] = useState<any>(null);
   const [procesos, setProcesos] = useState<any[]>([]);
   const [fotos, setFotos] = useState<any[]>([]);
   const [material, setMaterial] = useState<string>("");
   const [cliente, setCliente] = useState<string>("");
-  const [sublotes, setSublotes] = useState<any[]>([]);
+  const [nombreLote, setNombreLote] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(true);
+  const [pesoFinal, setPesoFinal] = useState<number | null>(null);
 
   useEffect(() => {
     async function fetchData() {
       try {
         setLoading(true);
 
-        // --- Lote con material y cliente ---
-        const { data: loteData, error: loteError } = await supabase
-          .from("lotes")
-          .select("*, material: id_material (nombre_material), cliente: id_cliente (nombre_cliente)")
-          .eq("id_lote", id)
+        // --- Sublote con lote padre, material y cliente ---
+        const { data: subloteData, error: subloteError } = await supabase
+          .from("sublotes")
+          .select("*, lote: id_lote (*, material: id_material (nombre_material), cliente: id_cliente (nombre_cliente))")
+          .eq("id_sublote", id)
           .single();
-        if (loteError) throw loteError;
+        if (subloteError) throw subloteError;
 
-        if (loteData) {
-          setLote(loteData);
-          setMaterial(loteData.material?.nombre_material || "Desconocido");
-          setCliente(loteData.cliente?.nombre_cliente || "Desconocido");
+        if (subloteData) {
+          setSublote(subloteData);
+          setMaterial(subloteData.lote?.material?.nombre_material || "Desconocido");
+          setCliente(subloteData.lote?.cliente?.nombre_cliente || "Desconocido");
+          setNombreLote(subloteData.lote?.nombre_lote || "Desconocido");
         }
 
-        // --- Procesos del lote (solo si no hay sublotes, pero fetch anyway para consistencia) ---
+        // --- Procesos del sublote ---
         const { data: procData, error: procError } = await supabase
           .from("procesos")
           .select("*, cliente: id_cliente (nombre_cliente)")
-          .eq("id_lote", id)
+          .eq("id_sublote", id)
           .order("fecha_proceso", { ascending: true });
         if (procError) throw procError;
         setProcesos(procData || []);
 
-        // --- Fotos asociadas ---
+        // Calcular peso final del último proceso
+        if (procData && procData.length > 0) {
+          const lastProceso = procData[procData.length - 1];
+          setPesoFinal(lastProceso.peso_salida_kg);
+        }
+
+        // --- Fotos asociadas al sublote ---
         const { data: fotosData, error: fotosError } = await supabase
           .from("fotos")
           .select("*")
-          .eq("id_lote", id);
+          .eq("id_sublote", id);
         if (fotosError) throw fotosError;
         setFotos(fotosData || []);
-
-        // --- Sublotes asociados ---
-        const { data: sublotesData, error: subError } = await supabase
-          .from("sublotes")
-          .select("id_sublote, nombre_sublote, peso_sublote_kg, estado_actual, fecha_creado")
-          .eq("id_lote", id)
-          .order("id_sublote", { ascending: true });
-        if (subError) throw subError;
-        setSublotes(sublotesData || []);
       } catch (error) {
-        console.error("Error fetching lote data:", error);
+        console.error("Error fetching sublote data:", error);
       } finally {
         setLoading(false);
       }
     }
 
-    fetchData();
+    if (id) {
+      fetchData();
+    }
   }, [id]);
 
   // ==== Utilidades ====
@@ -96,14 +97,13 @@ export default function LoteInformation() {
     Venta: "Venta",
   };
 
-  const getStepData = (proceso: any, lote: any, cliente: string) => {
+  const getStepData = (proceso: any, cliente: string) => {
     const procCliente = proceso.cliente?.nombre_cliente || cliente;
     switch (proceso.tipo_proceso) {
       case "Recibido":
         return [
           { label: "Fecha de Recibido", value: formatDate(proceso.fecha_proceso) },
           { label: "Cliente", value: procCliente },
-          { label: "Tipo de Proceso", value: lote.tipo_proceso },
         ];
       case "Molienda":
         return [
@@ -165,59 +165,26 @@ export default function LoteInformation() {
     </View>
   );
 
-  const SubloteCard = ({ sublote }: { sublote: any }) => (
-    <TouchableOpacity
-      onPress={() =>
-        router.push(`/(hidden)/screens/sublotes/${sublote.id_sublote}`)
-      }
-      activeOpacity={0.8}
-      className="bg-white rounded-2xl px-5 py-4 mb-4 flex-row justify-between items-center border border-green-100 shadow-lg"
-    >
-      <View className="flex-1">
-        <Text className="text-gray-800 font-ibm-condensed-bold text-lg mb-1">
-          {sublote.nombre_sublote}
-        </Text>
-        <View className="flex-row items-center">
-          <Text className="text-green-600 font-ibm-devanagari-bold text-base mr-4">
-            {formatNumber(sublote.peso_sublote_kg)} kg
-          </Text>
-          <View className="flex-row items-center px-3 py-1 bg-green-50 rounded-full">
-            <Ionicons name="ellipse" size={12} color="#22c55e" />
-            <Text className="text-green-600 font-medium text-sm ml-1">
-              {sublote.estado_actual}
-            </Text>
-          </View>
-        </View>
-        <Text className="text-gray-500 text-sm mt-1">
-          Creado: {formatDate(sublote.fecha_creado)}
-        </Text>
-      </View>
-      <Ionicons name="chevron-forward" size={24} color="#22c55e" />
-    </TouchableOpacity>
-  );
-
   if (loading)
     return (
       <SafeAreaView className="flex-1 bg-green-600 justify-center items-center">
         <ActivityIndicator size="large" color="white" />
-        <Text className="text-white mt-3 text-lg font-medium">Cargando información del lote...</Text>
+        <Text className="text-white mt-3 text-lg font-medium">Cargando información del sublote...</Text>
       </SafeAreaView>
     );
 
-  if (!lote)
+  if (!sublote)
     return (
       <SafeAreaView className="flex-1 bg-green-600 justify-center items-center">
         <Ionicons name="document-outline" size={64} color="white" />
-        <Text className="text-white text-xl font-ibm-condensed-bold mt-4">Lote no encontrado</Text>
+        <Text className="text-white text-xl font-ibm-condensed-bold mt-4">Sublote no encontrado</Text>
       </SafeAreaView>
     );
 
   const eficiencia =
-    lote.peso_final_kg && lote.peso_entrada_kg
-      ? ((lote.peso_final_kg / lote.peso_entrada_kg) * 100).toFixed(1) + "%"
+    pesoFinal && sublote.peso_sublote_kg
+      ? ((pesoFinal / sublote.peso_sublote_kg) * 100).toFixed(1) + "%"
       : "N/A";
-
-  const hasSublotes = sublotes.length > 0;
 
   return (
     <SafeAreaView className="bg-green-600 flex-1">
@@ -227,7 +194,7 @@ export default function LoteInformation() {
           <Ionicons name="chevron-back" size={28} color="white" />
         </TouchableOpacity>
         <Text className="text-2xl text-white font-ibm-condensed-bold ml-3 flex-1">
-          {lote.nombre_lote}
+          {sublote.nombre_sublote}
         </Text>
       </View>
 
@@ -246,6 +213,10 @@ export default function LoteInformation() {
           </View>
           <View className="space-y-3">
             <View className="flex-row items-center">
+              <Text className="text-gray-600 font-ibm-devanagari-bold w-32">Lote Padre:</Text>
+              <Text className="text-gray-900 font-semibold flex-1">{nombreLote}</Text>
+            </View>
+            <View className="flex-row items-center">
               <Text className="text-gray-600 font-ibm-devanagari-bold w-32">Cliente:</Text>
               <Text className="text-gray-900 font-semibold flex-1">{cliente}</Text>
             </View>
@@ -254,29 +225,25 @@ export default function LoteInformation() {
               <Text className="text-gray-900 font-semibold flex-1">{material}</Text>
             </View>
             <View className="flex-row items-center">
-              <Text className="text-gray-600 font-ibm-devanagari-bold w-32">Peso Entrada:</Text>
-              <Text className="text-gray-900 font-semibold flex-1">{formatNumber(lote.peso_entrada_kg)} kg</Text>
+              <Text className="text-gray-600 font-ibm-devanagari-bold w-32">Peso Sublote:</Text>
+              <Text className="text-gray-900 font-semibold flex-1">{formatNumber(sublote.peso_sublote_kg)} kg</Text>
             </View>
             <View className="flex-row items-center">
-              <Text className="text-gray-600 font-ibm-devanagari-bold w-32">Fecha Recibido:</Text>
-              <Text className="text-gray-900 font-semibold flex-1">{formatDate(lote.fecha_recibido)}</Text>
-            </View>
-            <View className="flex-row items-center">
-              <Text className="text-gray-600 font-ibm-devanagari-bold w-32">Tipo Proceso:</Text>
-              <Text className="text-green-600 font-semibold flex-1">{lote.tipo_proceso}</Text>
+              <Text className="text-gray-600 font-ibm-devanagari-bold w-32">Fecha Creado:</Text>
+              <Text className="text-gray-900 font-semibold flex-1">{formatDate(sublote.fecha_creado)}</Text>
             </View>
             <View className="flex-row items-center">
               <Text className="text-gray-600 font-ibm-devanagari-bold w-32">Estado Actual:</Text>
               <View className="flex-row items-center bg-green-50 px-3 py-1 rounded-full ml-auto">
                 <Ionicons name="ellipse" size={12} color="#22c55e" />
-                <Text className="text-green-600 font-medium text-sm ml-1">{lote.estado_actual}</Text>
+                <Text className="text-green-600 font-medium text-sm ml-1">{sublote.estado_actual}</Text>
               </View>
             </View>
           </View>
         </View>
 
-        {/* Sección de Procesos (solo si NO hay sublotes) */}
-        {!hasSublotes && (
+        {/* Sección de Procesos */}
+        {procesos.length > 0 && (
           <>
             <Text className="font-ibm-condensed-bold text-2xl text-gray-700 mb-4 flex-row items-center">
               <Ionicons name="cog-outline" size={24} color="#22c55e" className="mr-2" />
@@ -285,7 +252,7 @@ export default function LoteInformation() {
 
             {procesos.map((proceso) => {
               const title = stepTitles[proceso.tipo_proceso] || proceso.tipo_proceso;
-              const data = getStepData(proceso, lote, cliente);
+              const data = getStepData(proceso, cliente);
               const stepImages = fotos
                 .filter((f: any) => f.id_proceso === proceso.id_proceso)
                 .map((f: any) => ({ id: f.id_foto, src: f.url_foto }));
@@ -302,21 +269,6 @@ export default function LoteInformation() {
           </>
         )}
 
-        {/* Sección de Sublotes (mejorada) */}
-        {hasSublotes && (
-          <View className="mb-6">
-            <Text className="font-ibm-condensed-bold text-2xl text-gray-700 mb-4 flex-row items-center">
-              <Ionicons name="layers-outline" size={24} color="#22c55e" className="mr-2" />
-              Sublotes ({sublotes.length})
-            </Text>
-            <View className="space-y-3">
-              {sublotes.map((sublote) => (
-                <SubloteCard key={sublote.id_sublote} sublote={sublote} />
-              ))}
-            </View>
-          </View>
-        )}
-
         {/* Resumen mejorado */}
         <View className="bg-green-600 rounded-2xl p-6 mt-6 shadow-lg">
           <View className="flex-row items-center mb-4">
@@ -328,11 +280,11 @@ export default function LoteInformation() {
           <View className="space-y-3">
             <View className="flex-row justify-between items-center py-2">
               <Text className="text-green-100 font-semibold">Peso Inicial</Text>
-              <Text className="text-white font-bold text-lg">{formatNumber(lote.peso_entrada_kg)} kg</Text>
+              <Text className="text-white font-bold text-lg">{formatNumber(sublote.peso_sublote_kg)} kg</Text>
             </View>
             <View className="flex-row justify-between items-center py-2 border-t border-green-500/30">
               <Text className="text-green-100 font-semibold">Peso Final</Text>
-              <Text className="text-white font-bold text-lg">{formatNumber(lote.peso_final_kg || 0)} kg</Text>
+              <Text className="text-white font-bold text-lg">{formatNumber(pesoFinal || 0)} kg</Text>
             </View>
             <View className="flex-row justify-between items-center pt-2">
               <Text className="text-green-100 font-semibold">Eficiencia</Text>
