@@ -40,7 +40,8 @@
         }
       ],
       "expo-web-browser",
-      "expo-font"
+      "expo-font",
+      "expo-barcode-scanner"
     ],
     "experiments": {
       "typedRoutes": true,

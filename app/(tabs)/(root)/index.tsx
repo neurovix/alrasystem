@@ -1,8 +1,10 @@
 import icons from "@/constants/icons";
 import { supabase } from "@/lib/supabase";
+import AntDesign from '@expo/vector-icons/AntDesign';
+import { CameraView, useCameraPermissions } from "expo-camera";
 import { router, useFocusEffect } from "expo-router";
-import { useCallback, useState } from "react";
-import { Alert, Image, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { useCallback, useEffect, useState } from "react";
+import { Alert, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Circle, G, Path } from "react-native-svg";
 
@@ -36,12 +38,58 @@ export default function Home() {
     estatus: false,
     rol: "Operador",
   });
+  const [showScanner, setShowScanner] = useState(false);
+  const [scanned, setScanned] = useState(false);
+  const [permission, requestPermission] = useCameraPermissions();
 
   useFocusEffect(
     useCallback(() => {
       fetchData();
     }, [])
   );
+
+  useEffect(() => {
+    if (!permission) requestPermission();
+  }, [permission]);
+
+  const handleBarcodeScanned = ({ data }: any) => {
+    if (scanned) return;
+    setScanned(true);
+    if (data && data.startsWith("/")) {
+      router.push(data);
+      setShowScanner(false);
+      setScanned(false);
+      return;
+    }
+    Alert.alert("QR Escaneado", data, [
+      {
+        text: "OK",
+        onPress: () => {
+          setScanned(false);
+          setShowScanner(false);
+        },
+      },
+    ]);
+  };
+
+  if (showScanner) {
+    return (
+      <View style={styles.cameraContainer}>
+        <CameraView
+          style={StyleSheet.absoluteFill}
+          facing="back"
+          barcodeScannerSettings={{ barcodeTypes: ["qr"] }}
+          onBarcodeScanned={handleBarcodeScanned}
+        />
+        <TouchableOpacity
+          style={styles.closeButton}
+          onPress={() => setShowScanner(false)}
+        >
+          <Text style={styles.closeText}>Cerrar</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   async function fetchData() {
     try {
@@ -122,6 +170,7 @@ export default function Home() {
     }
   }
 
+
   let startAngleLote = 0;
   const validData = dataLotes.filter((item) => item.value > 0);
 
@@ -151,9 +200,14 @@ export default function Home() {
 
   return (
     <SafeAreaView className="bg-green-600 flex-1">
-      <Text className="text-3xl p-5 text-white font-ibm-condensed-bold">
-        Información general
-      </Text>
+      <View className="flex flex-row items-center w-full">
+        <Text className="text-3xl w-5/6 p-5 text-white font-ibm-condensed-bold">
+          Información general
+        </Text>
+        <TouchableOpacity className="w-1/6 text-center" onPress={() => setShowScanner(true)}>
+          <AntDesign name="scan" size={30} color="white" />
+        </TouchableOpacity>
+      </View>
       <ScrollView className="bg-white px-5 pt-2" contentContainerStyle={{ paddingBottom: 170 }}>
         <View className="w-full flex flex-row pt-3">
           <View className="w-5/12 items-center justify-center">
@@ -268,3 +322,24 @@ export default function Home() {
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  cameraContainer: {
+    flex: 1,
+    backgroundColor: "black",
+    justifyContent: "center",
+  },
+  closeButton: {
+    position: "absolute",
+    top: 60,
+    left: 20,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    padding: 10,
+    borderRadius: 10,
+  },
+  closeText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+});
