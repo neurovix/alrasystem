@@ -196,6 +196,18 @@ export default function LoteInformation() {
     </TouchableOpacity>
   );
 
+  const ActionButton = ({ title, onPress }: { title: string; onPress: () => void }) => (
+    <TouchableOpacity
+      onPress={onPress}
+      activeOpacity={0.8}
+      className="bg-green-600 rounded-2xl py-4 mb-3 shadow-lg"
+    >
+      <Text className="text-white font-ibm-condensed-bold text-lg text-center">
+        {title}
+      </Text>
+    </TouchableOpacity>
+  );
+
   if (loading)
     return (
       <SafeAreaView className="flex-1 bg-green-600 justify-center items-center">
@@ -218,6 +230,8 @@ export default function LoteInformation() {
       : "N/A";
 
   const hasSublotes = sublotes.length > 0;
+
+  const showButtons = !hasSublotes && lote.estado_actual !== "Finalizado";
 
   return (
     <SafeAreaView className="bg-green-600 flex-1">
@@ -299,6 +313,36 @@ export default function LoteInformation() {
                 />
               );
             })}
+
+            {/* Botones de Acción */}
+            {showButtons && (
+              <View className="">
+                {lote.estado_actual === "Recibido" && (
+                  <ActionButton
+                    title="Moler lote"
+                    onPress={() => router.push(`/screens/molienda?id_lote=${id}`)}
+                  />
+                )}
+                {lote.estado_actual === "Molienda" && (
+                  <>
+                    <ActionButton
+                      title="Peletizar"
+                      onPress={() => router.push(`/screens/peletizado?id_lote=${id}`)}
+                    />
+                    <ActionButton
+                      title={lote.tipo_proceso === "Maquila" ? "Maquila" : "Venta"}
+                      onPress={() =>
+                        router.push(
+                          lote.tipo_proceso === "Maquila"
+                            ? `/screens/retorno?id_lote=${id}`
+                            : `/screens/venta?id_lote=${id}`
+                        )
+                      }
+                    />
+                  </>
+                )}
+              </View>
+            )}
           </>
         )}
 
@@ -318,7 +362,7 @@ export default function LoteInformation() {
         )}
 
         {/* Resumen mejorado */}
-        <View className="bg-green-600 rounded-2xl p-6 mt-6 shadow-lg">
+        <View className="bg-green-600 rounded-2xl p-6 mt-2 shadow-lg">
           <View className="flex-row items-center mb-4">
             <Ionicons name="bar-chart-outline" size={24} color="white" />
             <Text className="font-ibm-condensed-bold text-xl text-white ml-2">

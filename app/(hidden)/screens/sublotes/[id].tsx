@@ -26,15 +26,24 @@ export default function SubloteInformation() {
   useEffect(() => {
     async function fetchData() {
       try {
+        console.log("Fetching sublote with id:", id); // Debug log
         setLoading(true);
+
+        const idNum = parseInt(id || "0");
+        if (isNaN(idNum)) {
+          console.error("Invalid id:", id);
+          throw new Error("Invalid sublote ID");
+        }
 
         // --- Sublote con lote padre, material y cliente ---
         const { data: subloteData, error: subloteError } = await supabase
           .from("sublotes")
           .select("*, lote: id_lote (*, material: id_material (nombre_material), cliente: id_cliente (nombre_cliente))")
-          .eq("id_sublote", id)
+          .eq("id_sublote", idNum)
           .single();
         if (subloteError) throw subloteError;
+
+        console.log("Sublote data:", subloteData); // Debug log
 
         if (subloteData) {
           setSublote(subloteData);
@@ -47,7 +56,7 @@ export default function SubloteInformation() {
         const { data: procData, error: procError } = await supabase
           .from("procesos")
           .select("*, cliente: id_cliente (nombre_cliente)")
-          .eq("id_sublote", id)
+          .eq("id_sublote", idNum)
           .order("fecha_proceso", { ascending: true });
         if (procError) throw procError;
         setProcesos(procData || []);
@@ -62,7 +71,7 @@ export default function SubloteInformation() {
         const { data: fotosData, error: fotosError } = await supabase
           .from("fotos")
           .select("*")
-          .eq("id_sublote", id);
+          .eq("id_sublote", idNum);
         if (fotosError) throw fotosError;
         setFotos(fotosData || []);
       } catch (error) {
@@ -165,6 +174,18 @@ export default function SubloteInformation() {
     </View>
   );
 
+  const ActionButton = ({ title, onPress }: { title: string; onPress: () => void }) => (
+    <TouchableOpacity
+      onPress={onPress}
+      activeOpacity={0.8}
+      className="bg-green-600 rounded-2xl py-4 mb-3 shadow-lg"
+    >
+      <Text className="text-white font-ibm-condensed-bold text-lg text-center">
+        {title}
+      </Text>
+    </TouchableOpacity>
+  );
+
   if (loading)
     return (
       <SafeAreaView className="flex-1 bg-green-600 justify-center items-center">
@@ -185,6 +206,8 @@ export default function SubloteInformation() {
     pesoFinal && sublote.peso_sublote_kg
       ? ((pesoFinal / sublote.peso_sublote_kg) * 100).toFixed(1) + "%"
       : "N/A";
+
+  const showButtons = sublote.estado_actual !== "Finalizado";
 
   return (
     <SafeAreaView className="bg-green-600 flex-1">
@@ -267,6 +290,36 @@ export default function SubloteInformation() {
               );
             })}
           </>
+        )}
+
+        {/* Botones de Acción - Moved outside processes section */}
+        {showButtons && (
+          <View className="mb-6 space-y-3">
+            {sublote.estado_actual === "Recibido" && (
+              <ActionButton
+                title="Molienda"
+                onPress={() => router.push(`/screens/molienda?id_lote=${sublote.id_lote}&id_sublote=${id}`)}
+              />
+            )}
+            {sublote.estado_actual === "Molienda" && (
+              <>
+                <ActionButton
+                  title="Peletizar"
+                  onPress={() => router.push(`/screens/peletizado?id_lote=${sublote.id_lote}&id_sublote=${id}`)}
+                />
+                <ActionButton
+                  title={sublote.lote?.tipo_proceso === "Maquila" ? "Maquila" : "Venta"}
+                  onPress={() =>
+                    router.push(
+                      sublote.lote?.tipo_proceso === "Maquila"
+                        ? `/screens/retorno?id_lote=${sublote.id_lote}&id_sublote=${id}`
+                        : `/screens/venta?id_lote=${sublote.id_lote}&id_sublote=${id}`
+                    )
+                  }
+                />
+              </>
+            )}
+          </View>
         )}
 
         {/* Resumen mejorado */}

@@ -4,7 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import * as FileSystem from 'expo-file-system/legacy';
-import { router, useFocusEffect } from "expo-router";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -22,6 +22,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function Retorno() {
+  const { id_lote, id_sublote } = useLocalSearchParams<{ id_lote: string; id_sublote?: string }>();
   const [permission, requestPermission] = useCameraPermissions();
   const [loading, setLoading] = useState(false);
   const cameraRef = useRef<CameraView>(null);
@@ -30,7 +31,7 @@ export default function Retorno() {
   const [photos, setPhotos] = useState<(string | null)[]>(Array(6).fill(null));
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const [lotes, setLotes] = useState<any[]>([]);
-  const [selectedLote, setSelectedLote] = useState("");
+  const [selectedLote, setSelectedLote] = useState<any>(null);
   const [userId, setUserId] = useState<any>(null);
   const [material, setMaterial] = useState<number | any>(0);
   const [clientes, setClientes] = useState<any[]>([]);
@@ -92,7 +93,7 @@ export default function Retorno() {
           }
 
           setClientes(clientesData);
-        } catch (err) {
+        } catch (err: any) {
           Alert.alert("Error", err.message);
           console.error(err);
         }
@@ -355,7 +356,7 @@ export default function Retorno() {
   const reFetch = async () => {
     try {
       setPeso(0);
-      setSelectedLote("");
+      setSelectedLote(null);
       setPhotos(Array(6).fill(null));
       setSelectedCliente("");
       setMerma(0);
@@ -372,7 +373,70 @@ export default function Retorno() {
     }
   };
 
+  const autoSelectLote = useCallback(async () => {
+    if (id_lote && lotes.length > 0 && !selectedLote) {
+      const id = parseInt(id_lote as string);
+      const loteObj = lotes.find((l: any) => l.id_lote === id);
+
+      if (loteObj) {
+        setSelectedLote(loteObj);
+        await handleLoteChange(loteObj.id_lote);
+
+        if (id_sublote) {
+          const subId = parseInt(id_sublote as string);
+          const interval = setInterval(() => {
+            setSublotes((currentSublotes) => {
+              const subObj = currentSublotes.find((s: any) => s.id_sublote === subId);
+              if (subObj) {
+                setSelectedSublote(subObj);
+                clearInterval(interval);
+              }
+              return currentSublotes;
+            });
+          }, 300);
+        }
+      }
+    }
+  }, [lotes, id_lote, id_sublote, selectedLote]);
+
+  useEffect(() => {
+    const tryAutoSelect = async () => {
+      try {
+        if (!id_lote || lotes.length === 0) return;
+        if (selectedLote && String(selectedLote.id_lote) === String(id_lote)) {
+          if (id_sublote && tieneSublotes) {
+            const subId = parseInt(id_sublote as string, 10);
+            const subObj = sublotes.find((s: any) => s.id_sublote === subId);
+            if (subObj) setSelectedSublote(subObj);
+          }
+          return;
+        }
+
+        const id = parseInt(id_lote as string, 10);
+        const loteObj = lotes.find((l: any) => l.id_lote === id);
+        if (!loteObj) return;
+
+        setSelectedLote(loteObj);
+        const loadedSublotes = await handleLoteChange(loteObj.id_lote);
+
+        if (id_sublote) {
+          const subId = parseInt(id_sublote as string, 10);
+          const subObj = (loadedSublotes || []).find((s: any) => s.id_sublote === subId);
+          if (subObj) {
+            setSelectedSublote(subObj);
+          }
+        }
+      } catch (err) {
+        console.log("❌ Error auto-seleccionando lote/sublote:", err);
+      }
+    };
+
+    tryAutoSelect();
+  }, [lotes, id_lote, id_sublote]);
+
+
   const handleLoteChange = async (idLote: any) => {
+    // NO bloquear cambios por el param: queremos permitir selección desde el efecto
     const loteObj = lotes.find((l) => l.id_lote === idLote);
     setSelectedLote(loteObj || null);
     setSelectedSublote(null);
@@ -382,14 +446,14 @@ export default function Retorno() {
     if (loteObj) {
       const { data: sublotesData, error: subError } = await supabase
         .from("sublotes")
-        .select("id_sublote, nombre_sublote")
+        .select("id_sublote, nombre_sublote, peso_sublote_kg")
         .eq("id_lote", loteObj.id_lote)
-        .in("estado_actual", ["Molienda", "Peletizado"])
+        .in("estado_actual", ["Molienda","Peletizado"])
         .order("nombre_sublote", { ascending: true });
 
       if (subError) {
         console.error("❌ Error al obtener sublotes:", subError);
-        return;
+        return [];
       }
 
       if (sublotesData && sublotesData.length > 0) {
@@ -400,7 +464,11 @@ export default function Retorno() {
       }
 
       setMaterial(loteObj.id_material);
+
+      return sublotesData || [];
     }
+
+    return [];
   };
 
   return (
@@ -447,7 +515,15 @@ export default function Retorno() {
           <View className="border-2 border-black rounded-xl mt-2">
             <Picker
               selectedValue={selectedLote?.id_lote || ""}
-              onValueChange={handleLoteChange}
+              onValueChange={(value) => {
+                if (value) handleLoteChange(value);
+                else {
+                  setSelectedLote(null);
+                  setSublotes([]);
+                  setSelectedSublote(null);
+                  setTieneSublotes(false);
+                }
+              }}
               style={Platform.OS === "ios" ? styles.pickerIOS : styles.picker}
             >
               <Picker.Item label="Selecciona un lote" value="" />
