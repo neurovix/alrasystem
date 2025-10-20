@@ -4,6 +4,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Image,
   ScrollView,
   Text,
@@ -75,6 +76,14 @@ export default function LoteInformation() {
 
     fetchData();
   }, [id]);
+
+  const handleN8N = async () => {
+    const _ = await fetch(`https://n8n.srv1034345.hstgr.cloud/webhook/49909213-02c1-4faa-81ef-6d162d22ea15?id_lote=${id}`, {
+      method: "POST",
+    })
+
+    Alert.alert("Notificacion", "El reporte deberia estar en tu correo en pocos segundos")
+  }
 
   // ==== Utilidades ====
   const formatDate = (dateStr: string) => {
@@ -386,6 +395,9 @@ export default function LoteInformation() {
             </View>
           </View>
         </View>
+        <TouchableOpacity onPress={handleN8N} className="bg-green-600 w-full rounded-2xl py-5 mt-5">
+          <Text className="font-ibm-condensed-bold text-white text-center">OBTENER REPORTE</Text>
+        </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
   );

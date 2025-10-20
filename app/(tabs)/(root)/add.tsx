@@ -319,11 +319,9 @@ export default function Add() {
         return;
       }
 
-      /*
-        const _ = await fetch(`https://n8n.srv1034345.hstgr.cloud/webhook/fcb03570-1335-4d18-a8e3-824ef86d3ef9?id_lote=${lastLoteId}`, {
-          method: "POST",
-        });
-      */
+      const _ = await fetch(`https://n8n.srv1034345.hstgr.cloud/webhook/acd61cff-f5a3-470a-821c-c1e9b08ba59a?id_lote=${lastLoteId}`, {
+        method: "POST",
+      });
 
       const fotosValidas = photos.filter((photo) => photo !== null && photo !== "");
       const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));

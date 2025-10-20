@@ -3,7 +3,7 @@ import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { router } from 'expo-router';
 import { Text, TouchableOpacity, View } from "react-native";
 
-export default function InventoryBox({ id, name, quantity }: any) {
+export default function InventoryBox({ id, name, quantity, isAdmin }: any) {
   return (
     <View className='flex flex-row w-full items-center border border-black px-4 py-3 rounded-xl my-2'>
       <View className='w-2/12'>
@@ -17,9 +17,11 @@ export default function InventoryBox({ id, name, quantity }: any) {
         </View>
       </View>
       <View className='w-2/12 flex items-end'>
-        <TouchableOpacity onPress={() => router.navigate(`/screens/inventario/${id}`)}>
-          <AntDesign name="right" size={30} color="black" />
-        </TouchableOpacity>
+        {isAdmin &&
+          <TouchableOpacity onPress={() => router.navigate(`/screens/inventario/${id}`)}>
+            <AntDesign name="right" size={30} color="black" />
+          </TouchableOpacity>
+        }
       </View>
     </View>
   )

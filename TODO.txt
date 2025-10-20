@@ -1,12 +1,11 @@
 # Checar lo de <CameraView /> ({children}: props [ReactNode]) -- DONE
 # Agregar lo de historial de lotes en la pantalla de cada cliente -- DONE
 # Generacion de reportes de inventario 
-# Escanear QR para ver lote o sublote
+# Escanear QR para ver lote o sublote -- DONE
 # Alert.alert() de password incorrecto -- DONE
 # Administracion de usuarios solo para administradores -- DONE
 # Agregar el splash screen
 # Hacer que los usuarios puedan cambiar de rol -- DONE
-# Agregar auth a todas las pantallas para verificacion de estatus por usuario
-# Notificaciones de lotes
-# Detalles de sublotes
-# Verificar detalles de lotes
+# Agregar auth a todas las pantallas para verificacion de estatus por usuario (index,inventario) -- DONE
+# Detalles de sublotes -- DONE
+# Verificar detalles de lotes -- DONE
