@@ -19,13 +19,13 @@ export default function NewInventario() {
   const [materialQuantity, setMaterialQuantity] = useState<string | any>("");
 
   const insertMaterial = async () => {
-    const { data: materialData, error: materialError } = await supabase.from("materiales").insert({
+    const { data: _, error: materialError } = await supabase.from("materiales").insert({
       nombre_material: materialName,
       cantidad_disponible_kg: materialQuantity,
     });
 
     if (materialError) {
-      Alert.alert("Ha habido algun problema al guardar el material");
+      Alert.alert("Error", "No se pudo guardar el material");
       return;
     }
 
@@ -57,6 +57,7 @@ export default function NewInventario() {
           <View className='border-2 border-gray-600 rounded-xl px-3 py-1 mt-2'>
             <TextInput
               placeholder='Ingresa el nombre del material'
+              placeholderTextColor="#4b5563"
               onChangeText={(text) => setMaterialName(text)}
             />
           </View>
@@ -66,6 +67,7 @@ export default function NewInventario() {
           <View className='border-2 border-gray-600 rounded-xl px-3 py-1 mt-2'>
             <TextInput
               placeholder='Ingresa la cantidad inicial (kg)'
+              placeholderTextColor="#4b5563"
               keyboardType='numeric'
               onChangeText={(text) => setMaterialQuantity(text)}
             />

@@ -19,20 +19,20 @@ export default function Inventario() {
   const [showFin, setShowFin] = useState(false);
   const [fechaInicio, setFechaInicio] = useState(new Date());
   const [fechaFin, setFechaFin] = useState(new Date());
-  const [isAdmin, setIsAdmin] = useState(false); // 👈 Aquí guardamos si es administrador
+  const [isAdmin, setIsAdmin] = useState(false);
 
-  // 🔹 Obtener usuario loggeado y determinar si es administrador
   useFocusEffect(
     useCallback(() => {
       const fetchUserAndMaterials = async () => {
         try {
-          // Obtener usuario loggeado
           const { data: userData, error: userError } = await supabase.auth.getUser();
-          if (userError) throw userError;
+          if (userError) {
+            Alert.alert("Error", "No se pudo obtener la informacion del usuario loggeado");
+            return;
+          }
 
           const user = userData?.user;
           if (user) {
-            // Consultar su rol en la tabla usuarios
             const { data: perfil, error: perfilError } = await supabase
               .from("usuarios")
               .select("rol")
@@ -40,13 +40,12 @@ export default function Inventario() {
               .single();
 
             if (perfilError) {
-              console.log("Error al obtener rol del usuario:", perfilError);
+              Alert.alert("Error", "Error al obtener rol del usuario");
             } else {
-              setIsAdmin(perfil?.rol === "Administrador"); // 👈 Solo si el rol es Administrador
+              setIsAdmin(perfil?.rol === "Administrador");
             }
           }
 
-          // Cargar materiales
           const { data: materialData, error: materialError } = await supabase
             .from("materiales")
             .select("id_material, nombre_material, cantidad_disponible_kg");
@@ -72,7 +71,7 @@ export default function Inventario() {
             setMaterials(dataWithColors);
           }
         } catch (error) {
-          console.error("Error general:", error);
+          Alert.alert("Error", "Favor de intentar mas tarde");
         }
       };
 
@@ -101,7 +100,12 @@ export default function Inventario() {
     return num.toString();
   };
 
-  const formatDate = (date: Date) => date.toISOString().split("T")[0];
+  const formatDate = (date: Date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
 
   const handlePDF = async () => {
     setModalVisible(false);
@@ -151,6 +155,25 @@ export default function Inventario() {
           ))}
         </View>
       </ScrollView>
+      <View className="mt-6 pt-4 border-t border-gray-200">
+        <Text className="font-ibm-condensed-bold text-lg text-gray-700 mb-3">
+          Top 3 Materiales
+        </Text>
+        {chartData.slice(0, 3).map((item, index) => (
+          <View key={item.id} className="flex-row items-center mb-2">
+            <View
+              className="w-4 h-4 rounded mr-3"
+              style={{ backgroundColor: item.color }}
+            />
+            <Text className="flex-1 font-medium text-gray-700">
+              {item.name}
+            </Text>
+            <Text className="font-ibm-condensed-bold text-gray-900">
+              {parseInt(item.quantity).toLocaleString()} kg
+            </Text>
+          </View>
+        ))}
+      </View>
     </View>
   );
 
@@ -225,7 +248,7 @@ export default function Inventario() {
               name={item.name}
               quantity={item.quantity}
               color={item.color}
-              isAdmin={isAdmin} // 👈 Solo los admins pueden editar
+              isAdmin={isAdmin}
             />
           ))
         ) : (
@@ -256,7 +279,6 @@ export default function Inventario() {
           </TouchableOpacity>
         </View>
 
-        {/* Modal para exportar PDF */}
         <Modal
           animationType="slide"
           transparent={true}
@@ -288,9 +310,15 @@ export default function Inventario() {
                   value={fechaInicio}
                   mode="date"
                   display={Platform.OS === "ios" ? "spinner" : "default"}
+                  textColor="#000000"
                   onChange={(event, selectedDate) => {
                     setShowInicio(false);
-                    if (selectedDate) setFechaInicio(selectedDate);
+                    if (selectedDate) {
+                      const correctedDate = new Date(
+                        selectedDate.getTime() + selectedDate.getTimezoneOffset() * 60000
+                      );
+                      setFechaInicio(correctedDate);
+                    }
                   }}
                 />
               )}
@@ -300,9 +328,15 @@ export default function Inventario() {
                   value={fechaFin}
                   mode="date"
                   display={Platform.OS === "ios" ? "spinner" : "default"}
+                  textColor="#000000"
                   onChange={(event, selectedDate) => {
                     setShowFin(false);
-                    if (selectedDate) setFechaFin(selectedDate);
+                    if (selectedDate) {
+                      const correctedDate = new Date(
+                        selectedDate.getTime() + selectedDate.getTimezoneOffset() * 60000
+                      );
+                      setFechaFin(correctedDate);
+                    }
                   }}
                 />
               )}

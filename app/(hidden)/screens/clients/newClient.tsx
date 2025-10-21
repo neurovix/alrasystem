@@ -26,7 +26,7 @@ export default function NewClient() {
 
     if (clientError) {
       Alert.alert("Ha ocurrido algun problema al momento de registrar el cliente, favor de intentar nuevamente mas tarde")
-      throw clientError;
+      return;
     }
 
     Alert.alert("Cliente registrado exitosamente");
@@ -55,6 +55,7 @@ export default function NewClient() {
           <View className='border-2 border-gray-600 rounded-xl px-3 py-1 mt-2'>
             <TextInput
               placeholder='Ingresa el nombre del cliente'
+              placeholderTextColor="#4b5563"
               onChangeText={(text) => setClientName(text)}
             />
           </View>
@@ -64,6 +65,7 @@ export default function NewClient() {
           <View className='border-2 border-gray-600 rounded-xl px-3 py-1 mt-2'>
             <TextInput
               placeholder='Ingresa el nombre de la empresa'
+              placeholderTextColor="#4b5563"
               onChangeText={(text) => setClientCompany(text)}
             />
           </View>

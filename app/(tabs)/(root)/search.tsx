@@ -2,7 +2,7 @@ import LoteBox from "@/components/ui/LoteBox";
 import { supabase } from "@/lib/supabase";
 import { useFocusEffect } from "@react-navigation/native";
 import { useCallback, useState } from "react";
-import { ActivityIndicator, ScrollView, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Alert, ScrollView, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function Search() {
@@ -22,7 +22,7 @@ export default function Search() {
           .order("id_lote", {ascending: true});
 
         if (error) {
-          console.log("Error cargando lotes:", error);
+          Alert.alert("Error", "Error cargando lotes");
           return;
         }
 

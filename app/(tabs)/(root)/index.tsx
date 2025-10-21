@@ -99,7 +99,6 @@ export default function Home() {
       const user = sessionData?.user;
 
       if (!user) {
-        console.log("⚠️ No hay sesión activa, redirigiendo...");
         Alert.alert("Error", "⚠️ No hay sesión activa, redirigiendo...");
         router.replace("/(tabs)/(auth)/login");
         return;
@@ -112,7 +111,7 @@ export default function Home() {
         .single();
 
       if (perfilError) {
-        console.log("❌ Error al obtener perfil:", perfilError);
+        Alert.alert("Error", "❌ Error al obtener perfil");
         return;
       }
 
@@ -128,8 +127,6 @@ export default function Home() {
         return;
       }
 
-      console.log("✅ Usuario activo:", perfil);
-
       const now = new Date();
       const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
       const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
@@ -144,7 +141,10 @@ export default function Home() {
         .gte("fecha_recibido", firstDayISO)
         .lte("fecha_recibido", lastDayISO);
 
-      if (error1) throw error1;
+      if (error1) {
+        Alert.alert("Error", "No se pudieron obtener los procesos");
+        return;
+      }
 
       const { count: finalizadosCount, error: error2 } = await supabase
         .from("lotes")
@@ -153,9 +153,13 @@ export default function Home() {
         .gte("fecha_recibido", firstDayISO)
         .lte("fecha_recibido", lastDayISO);
 
-      if (error2) throw error2;
+      if (error2) {
+        Alert.alert("Error", "Error al obtener los lotes");
+        return;
+      }
 
       const total = (enProcesoCount || 0) + (finalizadosCount || 0);
+
       setTotalLotes(total);
 
       setDataLotes([
@@ -163,7 +167,6 @@ export default function Home() {
         { label: "Finalizados", value: finalizadosCount || 0, color: "#059669" },
       ]);
     } catch (error) {
-      console.error("❌ Error al cargar datos:", error);
       Alert.alert("Error", "Ocurrió un problema al cargar la información.");
     } finally {
       setLoading(false);

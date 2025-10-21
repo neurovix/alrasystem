@@ -18,13 +18,13 @@ export default function NewMaterial() {
   const [materialName, setMaterialName] = useState<string | any>("");
 
   const insertMaterial = async () => {
-    const { data: materialData, error: materialError } = await supabase.from("materiales").insert({
+    const { data: _, error: materialError } = await supabase.from("materiales").insert({
       nombre_material: materialName,
     });
 
     if (materialError) {
-      Alert.alert("Hubo algun problema al registrar el nuevo material");
-      return
+      Alert.alert("Error", "Hubo algun problema al registrar el nuevo material");
+      return;
     }
 
     if (!materialError) {

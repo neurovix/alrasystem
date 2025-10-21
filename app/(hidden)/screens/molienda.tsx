@@ -70,7 +70,10 @@ export default function Molienda() {
 
         const { data, error } = await supabase.auth.getUser();
 
-        if (error) throw error;
+        if (error) {
+          Alert.alert("Error", "No se pudo obtener la informacion del usuario loggeado");
+          return;
+        }
 
         setUserId(data.user.id);
       };
@@ -133,7 +136,6 @@ export default function Molienda() {
     const lastProcessId = processData?.id_proceso;
 
     if (insertError) {
-      console.log("❌ Error insertando proceso:", insertError);
       Alert.alert("Error", "No se pudo guardar el proceso: " + insertError.message);
       return;
     }
@@ -150,8 +152,7 @@ export default function Molienda() {
       })
 
     if (historialError) {
-      Alert.alert("Error al insertar el movimiento en el historial" + historialError);
-      console.log(historialError);
+      Alert.alert("Error", "Error al insertar el movimiento en el historial" + historialError);
       return;
     }
 
@@ -167,7 +168,7 @@ export default function Molienda() {
         .eq("id_lote", selectedLote.id_lote);
 
       if (subError) {
-        console.log("Error al traer sublotes:", subError);
+        Alert.alert("Error", "No se pudieron obtener los sublotes");
         return;
       }
 
@@ -200,14 +201,14 @@ export default function Molienda() {
       .single();
 
     if (matError) {
-      console.log("Mat error:", matError);
+      Alert.alert("Error", "No se pudo obtener la cantidad de material para calculo de merma");
       return;
     }
 
     const cantidadMaterial = materialData?.cantidad_disponible_kg;
 
     if (!cantidadMaterial || isNaN(merma)) {
-      console.log("❌ Datos inválidos para actualizar material:", { cantidadMaterial, merma });
+      Alert.alert("❌ Datos inválidos para actualizar material");
       return;
     }
 
@@ -219,7 +220,6 @@ export default function Molienda() {
 
     if (materialError) {
       Alert.alert("Error", "Error al actualizar la cantidad de material");
-      console.log("Material error: ", materialError);
       return;
     }
 
@@ -235,14 +235,12 @@ export default function Molienda() {
         if (!photoUri) continue;
 
         try {
-          console.log(`Iniciando subida de foto ${i + 1}, URI: ${photoUri}`);
           const fileInfo = await FileSystem.getInfoAsync(photoUri);
           if (!fileInfo.exists) {
-            console.log(`❌ Archivo no encontrado: ${photoUri}`);
+            Alert.alert("Error", `❌ Archivo no encontrado: ${photoUri}`);
             continue;
           }
           if (fileInfo.size > 10 * 1024 * 1024) {
-            console.log(`❌ Foto ${i + 1} excede el tamaño máximo (10MB)`);
             Alert.alert("Error", `La foto ${i + 1} es demasiado grande.`);
             continue;
           }
@@ -272,7 +270,7 @@ export default function Molienda() {
             });
 
           if (uploadError) {
-            console.log(`❌ Error subiendo foto ${i + 1}:`, uploadError);
+            Alert.alert("Error", "No se pudo subir la foto #" + (i + 1));
             continue;
           }
 
@@ -290,13 +288,13 @@ export default function Molienda() {
           });
 
           if (insertFotoError) {
-            console.log(`❌ Error insertando foto ${i + 1}:`, insertFotoError);
+            Alert.alert("Error", "No se pudo guardar la foto");
+            return;
           }
 
           await FileSystem.deleteAsync(photoUri, { idempotent: true });
-          console.log(`✅ Foto ${i + 1} subida y archivo local eliminado`);
         } catch (err) {
-          console.log(`❌ Error procesando foto ${i + 1}:`, err);
+          Alert.alert("Error", "No se pudo procesar la foto");
         }
       }
 
@@ -304,7 +302,6 @@ export default function Molienda() {
       await reFetch();
       router.push("/(tabs)/(root)");
     } catch (err) {
-      console.log("❌ Error inesperado:", err);
       Alert.alert("Error", "Error inesperado: " + (err as Error).message);
     } finally {
       setLoading(false);
@@ -318,7 +315,7 @@ export default function Molienda() {
       setPhotos(Array(6).fill(null));
       setMerma(0);
 
-      const fetchData = async () => {
+      const _ = async () => {
         const { data: loteData } = await supabase.from("lotes")
           .select("id_lote,nombre_lote,peso_entrada_kg,id_material,id_cliente,numero_de_sublotes")
           .not("estado_actual", "in", "(Finalizado,Molienda,Peletizado)");
@@ -332,7 +329,7 @@ export default function Molienda() {
         setMerma(0);
       }
     } catch (err) {
-      console.log("❌ Error en reFetch:", err);
+      Alert.alert("Error", "Favor de intentar mas tarde");
     }
   };
 
@@ -364,7 +361,7 @@ export default function Molienda() {
           }
         }
       } catch (err) {
-        console.log("❌ Error auto-seleccionando lote/sublote:", err);
+        Alert.alert("Error", "No se pudo autoseleccionar el lote o sublote");
       }
     };
 
@@ -373,7 +370,6 @@ export default function Molienda() {
 
 
   const handleLoteChange = async (idLote: any) => {
-    // NO bloquear cambios por el param: queremos permitir selección desde el efecto
     const loteObj = lotes.find((l) => l.id_lote === idLote);
     setSelectedLote(loteObj || null);
     setSelectedSublote(null);
@@ -389,7 +385,7 @@ export default function Molienda() {
         .order("nombre_sublote", { ascending: true });
 
       if (subError) {
-        console.error("❌ Error al obtener sublotes:", subError);
+        Alert.alert("Error", "No se pudieron obtener los sublotes");
         return [];
       }
 
@@ -455,6 +451,7 @@ export default function Molienda() {
               selectedValue={selectedLote?.id_lote || ""}
               onValueChange={handleLoteChange}
               style={Platform.OS === "ios" ? styles.pickerIOS : styles.picker}
+              itemStyle={{color: "#000"}}
             >
               <Picker.Item label="Selecciona un lote" value="" />
               {lotes.map((lote) => (

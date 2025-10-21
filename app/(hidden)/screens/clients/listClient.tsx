@@ -5,6 +5,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import {
+  Alert,
   ScrollView,
   Text,
   TouchableOpacity,
@@ -19,9 +20,10 @@ export default function ListClient() {
     const fetchClients = async () => {
       const { data: clientList, error: clientError } = await supabase
         .from("clientes")
-        .select("id_cliente,nombre_cliente,empresa").order("nombre_cliente", {ascending: true}); // Asegúrate de seleccionar el id
+        .select("id_cliente,nombre_cliente,empresa").order("nombre_cliente", {ascending: true});
 
       if (clientError) {
+        Alert.alert("Error", "No se pudieron obtener los clientes");
         return;
       }
 

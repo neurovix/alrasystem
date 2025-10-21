@@ -28,13 +28,15 @@ export default function LoteInformation() {
       try {
         setLoading(true);
 
-        // --- Lote con material y cliente ---
         const { data: loteData, error: loteError } = await supabase
           .from("lotes")
           .select("*, material: id_material (nombre_material), cliente: id_cliente (nombre_cliente)")
           .eq("id_lote", id)
           .single();
-        if (loteError) throw loteError;
+        if (loteError) {
+          Alert.alert("Error", "No se pudo obtener la informacion del lote");
+          return;
+        }
 
         if (loteData) {
           setLote(loteData);
@@ -42,33 +44,45 @@ export default function LoteInformation() {
           setCliente(loteData.cliente?.nombre_cliente || "Desconocido");
         }
 
-        // --- Procesos del lote (solo si no hay sublotes, pero fetch anyway para consistencia) ---
         const { data: procData, error: procError } = await supabase
           .from("procesos")
           .select("*, cliente: id_cliente (nombre_cliente)")
           .eq("id_lote", id)
           .order("fecha_proceso", { ascending: true });
-        if (procError) throw procError;
+        
+        if (procError) {
+          Alert.alert("Error", "No se pudieron obtener los procesos del lote");
+          return;
+        }
+
         setProcesos(procData || []);
 
-        // --- Fotos asociadas ---
         const { data: fotosData, error: fotosError } = await supabase
           .from("fotos")
           .select("*")
           .eq("id_lote", id);
-        if (fotosError) throw fotosError;
+
+        if (fotosError) {
+          Alert.alert("Error", "No se pudieron obtener las fotos")
+          return;
+        }
+
         setFotos(fotosData || []);
 
-        // --- Sublotes asociados ---
         const { data: sublotesData, error: subError } = await supabase
           .from("sublotes")
           .select("id_sublote, nombre_sublote, peso_sublote_kg, estado_actual, fecha_creado")
           .eq("id_lote", id)
           .order("id_sublote", { ascending: true });
-        if (subError) throw subError;
+
+        if (subError) {
+          Alert.alert("Error", "No se pudieron obtener los sublotes");
+          return;
+        }
+
         setSublotes(sublotesData || []);
       } catch (error) {
-        console.error("Error fetching lote data:", error);
+        Alert.alert("Error", "Hubo algun problema, favor de intentar mas tarde");
       } finally {
         setLoading(false);
       }
@@ -85,7 +99,6 @@ export default function LoteInformation() {
     Alert.alert("Notificacion", "El reporte deberia estar en tu correo en pocos segundos")
   }
 
-  // ==== Utilidades ====
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
     return `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}`;
@@ -244,7 +257,6 @@ export default function LoteInformation() {
 
   return (
     <SafeAreaView className="bg-green-600 flex-1">
-      {/* Header mejorado */}
       <View className="flex-row items-center px-5 pb-3 bg-green-600">
         <TouchableOpacity onPress={() => router.back()} className="p-2 rounded-full bg-green-500/20">
           <Ionicons name="chevron-back" size={28} color="white" />
@@ -259,7 +271,6 @@ export default function LoteInformation() {
         contentContainerStyle={{ padding: 20, paddingBottom: 40 }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Detalles Generales mejorados */}
         <View className="bg-white rounded-2xl p-6 mb-6 shadow-lg border border-green-100">
           <View className="flex-row items-center mb-4">
             <Ionicons name="information-circle-outline" size={24} color="#22c55e" />
@@ -298,7 +309,6 @@ export default function LoteInformation() {
           </View>
         </View>
 
-        {/* Sección de Procesos (solo si NO hay sublotes) */}
         {!hasSublotes && (
           <>
             <Text className="font-ibm-condensed-bold text-2xl text-gray-700 mb-4 flex-row items-center">
@@ -323,7 +333,6 @@ export default function LoteInformation() {
               );
             })}
 
-            {/* Botones de Acción */}
             {showButtons && (
               <View className="">
                 {lote.estado_actual === "Recibido" && (
@@ -355,7 +364,6 @@ export default function LoteInformation() {
           </>
         )}
 
-        {/* Sección de Sublotes (mejorada) */}
         {hasSublotes && (
           <View className="mb-6">
             <Text className="font-ibm-condensed-bold text-2xl text-gray-700 mb-4 flex-row items-center">
@@ -370,7 +378,6 @@ export default function LoteInformation() {
           </View>
         )}
 
-        {/* Resumen mejorado */}
         <View className="bg-green-600 rounded-2xl p-6 mt-2 shadow-lg">
           <View className="flex-row items-center mb-4">
             <Ionicons name="bar-chart-outline" size={24} color="white" />

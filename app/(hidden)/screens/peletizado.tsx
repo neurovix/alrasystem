@@ -82,7 +82,7 @@ export default function Peletizado() {
           const { data: processData, error: processError } = await query.maybeSingle();
 
           if (processError) {
-            console.log("Error obteniendo molienda:", processError);
+            Alert.alert("Error", "No se pudo obtener el peso de molienda");
             setPesoMolienda(0);
           } else {
             setPesoMolienda(processData?.peso_salida_kg || 0);
@@ -128,8 +128,7 @@ export default function Peletizado() {
     const lastProcessId = processData?.id_proceso;
 
     if (insertError) {
-      console.log("❌ Error insertando proceso:", insertError);
-      Alert.alert("Error", "No se pudo guardar el proceso: " + insertError.message);
+      Alert.alert("Error", "No se pudo guardar el proceso");
       return;
     }
 
@@ -145,8 +144,7 @@ export default function Peletizado() {
       })
 
     if (historialError) {
-      Alert.alert("Error al insertar el movimiento en el historial" + historialError);
-      console.log(historialError);
+      Alert.alert("Error", "No se pudo insertar el movimiento en el historial");
       return;
     }
 
@@ -162,7 +160,7 @@ export default function Peletizado() {
         .eq("id_lote", selectedLote.id_lote);
 
       if (subError) {
-        console.log("Error al traer sublotes:", subError);
+        Alert.alert("Error", "No se pudieron obtener los sublotes");
         return;
       }
 
@@ -219,14 +217,12 @@ export default function Peletizado() {
         if (!photoUri) continue;
 
         try {
-          console.log(`Iniciando subida de foto ${i + 1}, URI: ${photoUri}`);
           const fileInfo = await FileSystem.getInfoAsync(photoUri);
           if (!fileInfo.exists) {
-            console.log(`❌ Archivo no encontrado: ${photoUri}`);
+            Alert.alert("Error", `❌ Archivo no encontrado: ${photoUri}`);
             continue;
           }
           if (fileInfo.size > 10 * 1024 * 1024) {
-            console.log(`❌ Foto ${i + 1} excede el tamaño máximo (10MB)`);
             Alert.alert("Error", `La foto ${i + 1} es demasiado grande.`);
             continue;
           }
@@ -256,7 +252,7 @@ export default function Peletizado() {
             });
 
           if (uploadError) {
-            console.log(`❌ Error subiendo foto ${i + 1}:`, uploadError);
+            Alert.alert("Error", `❌ Error subiendo foto ${i + 1}`);
             continue;
           }
 
@@ -274,13 +270,13 @@ export default function Peletizado() {
           });
 
           if (insertFotoError) {
-            console.log(`❌ Error insertando foto ${i + 1}:`, insertFotoError);
+            Alert.alert("Error", `❌ Error insertando foto ${i + 1}`);
+            continue;
           }
 
           await FileSystem.deleteAsync(photoUri, { idempotent: true });
-          console.log(`✅ Foto ${i + 1} subida y archivo local eliminado`);
         } catch (err) {
-          console.log(`❌ Error procesando foto ${i + 1}:`, err);
+          Alert.alert("Error", `❌ Error procesando foto ${i + 1}`);
         }
       }
 
@@ -288,7 +284,6 @@ export default function Peletizado() {
       await reFetch();
       router.push("/(tabs)/(root)");
     } catch (err) {
-      console.log("❌ Error inesperado:", err);
       Alert.alert("Error", "Error inesperado: " + (err as Error).message);
     } finally {
       setLoading(false);
@@ -318,7 +313,7 @@ export default function Peletizado() {
         setMerma(0);
       }
     } catch (err) {
-      console.log("❌ Error en reFetch:", err);
+      Alert.alert("Error", "Favor de intentar mas tarde");
     }
   };
 
@@ -376,7 +371,7 @@ export default function Peletizado() {
           }
         }
       } catch (err) {
-        console.log("❌ Error auto-seleccionando lote/sublote:", err);
+        Alert.alert("Error", "No se pudo autoseleccionar el lote o el sublote");
       }
     };
 
@@ -385,7 +380,6 @@ export default function Peletizado() {
 
 
   const handleLoteChange = async (idLote: any) => {
-    // NO bloquear cambios por el param: queremos permitir selección desde el efecto
     const loteObj = lotes.find((l) => l.id_lote === idLote);
     setSelectedLote(loteObj || null);
     setSelectedSublote(null);
@@ -401,7 +395,7 @@ export default function Peletizado() {
         .order("nombre_sublote", { ascending: true });
 
       if (subError) {
-        console.error("❌ Error al obtener sublotes:", subError);
+        Alert.alert("Error", "❌ Error al obtener sublotes");
         return [];
       }
 
@@ -466,6 +460,7 @@ export default function Peletizado() {
               selectedValue={selectedLote?.id_lote || ""}
               onValueChange={handleLoteChange}
               style={Platform.OS === "ios" ? styles.pickerIOS : styles.picker}
+              itemStyle={{color: "#000"}}
             >
               <Picker.Item label="Selecciona un lote" value="" />
               {lotes.map((lote) => (

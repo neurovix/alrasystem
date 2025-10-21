@@ -4,6 +4,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Image,
   ScrollView,
   Text,
@@ -26,24 +27,25 @@ export default function SubloteInformation() {
   useEffect(() => {
     async function fetchData() {
       try {
-        console.log("Fetching sublote with id:", id); // Debug log
         setLoading(true);
 
         const idNum = parseInt(id || "0");
+
         if (isNaN(idNum)) {
-          console.error("Invalid id:", id);
-          throw new Error("Invalid sublote ID");
+          Alert.alert("Error", "Favor de intentar mas tarde");
+          return;
         }
 
-        // --- Sublote con lote padre, material y cliente ---
         const { data: subloteData, error: subloteError } = await supabase
           .from("sublotes")
           .select("*, lote: id_lote (*, material: id_material (nombre_material), cliente: id_cliente (nombre_cliente))")
           .eq("id_sublote", idNum)
           .single();
-        if (subloteError) throw subloteError;
 
-        console.log("Sublote data:", subloteData); // Debug log
+        if (subloteError) {
+          Alert.alert("Error", "No se pudieron obtener los sublotes");
+          return;
+        }
 
         if (subloteData) {
           setSublote(subloteData);
@@ -52,30 +54,37 @@ export default function SubloteInformation() {
           setNombreLote(subloteData.lote?.nombre_lote || "Desconocido");
         }
 
-        // --- Procesos del sublote ---
         const { data: procData, error: procError } = await supabase
           .from("procesos")
           .select("*, cliente: id_cliente (nombre_cliente)")
           .eq("id_sublote", idNum)
           .order("fecha_proceso", { ascending: true });
-        if (procError) throw procError;
+
+        if (procError) {
+          Alert.alert("Error", "No se pudieron obtener los procesos del sublote");
+          return;
+        }
+
         setProcesos(procData || []);
 
-        // Calcular peso final del último proceso
         if (procData && procData.length > 0) {
           const lastProceso = procData[procData.length - 1];
           setPesoFinal(lastProceso.peso_salida_kg);
         }
 
-        // --- Fotos asociadas al sublote ---
         const { data: fotosData, error: fotosError } = await supabase
           .from("fotos")
           .select("*")
           .eq("id_sublote", idNum);
-        if (fotosError) throw fotosError;
+
+        if (fotosError) {
+          Alert.alert("Error", "No se pudieron obtener las fotos del sublote");
+          return;
+        }
+
         setFotos(fotosData || []);
       } catch (error) {
-        console.error("Error fetching sublote data:", error);
+        Alert.alert("Error", "Favor de intentar mas tarde");
       } finally {
         setLoading(false);
       }
@@ -86,7 +95,6 @@ export default function SubloteInformation() {
     }
   }, [id]);
 
-  // ==== Utilidades ====
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
     return `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}`;
@@ -211,7 +219,6 @@ export default function SubloteInformation() {
 
   return (
     <SafeAreaView className="bg-green-600 flex-1">
-      {/* Header mejorado */}
       <View className="flex-row items-center px-5 pb-3 bg-green-600">
         <TouchableOpacity onPress={() => router.back()} className="p-2 rounded-full bg-green-500/20">
           <Ionicons name="chevron-back" size={28} color="white" />
@@ -226,7 +233,6 @@ export default function SubloteInformation() {
         contentContainerStyle={{ padding: 20, paddingBottom: 40 }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Detalles Generales mejorados */}
         <View className="bg-white rounded-2xl p-6 mb-6 shadow-lg border border-green-100">
           <View className="flex-row items-center mb-4">
             <Ionicons name="information-circle-outline" size={24} color="#22c55e" />
@@ -265,7 +271,6 @@ export default function SubloteInformation() {
           </View>
         </View>
 
-        {/* Sección de Procesos */}
         {procesos.length > 0 && (
           <>
             <Text className="font-ibm-condensed-bold text-2xl text-gray-700 mb-4 flex-row items-center">
@@ -292,7 +297,6 @@ export default function SubloteInformation() {
           </>
         )}
 
-        {/* Botones de Acción - Moved outside processes section */}
         {showButtons && (
           <View className="mb-6 space-y-3">
             {sublote.estado_actual === "Recibido" && (
@@ -322,7 +326,6 @@ export default function SubloteInformation() {
           </View>
         )}
 
-        {/* Resumen mejorado */}
         <View className="bg-green-600 rounded-2xl p-6 mt-6 shadow-lg">
           <View className="flex-row items-center mb-4">
             <Ionicons name="bar-chart-outline" size={24} color="white" />

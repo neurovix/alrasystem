@@ -72,7 +72,7 @@ export default function Retorno() {
             const { data: processData, error: processError } = await query.maybeSingle();
 
             if (processError) {
-              console.log("Error obteniendo proceso anterior:", processError);
+              Alert.alert("Error obteniendo proceso anterior");
               setPesoProcesoAnterior(0);
             } else {
               setPesoProcesoAnterior(Number(processData?.peso_salida_kg || 0));
@@ -88,14 +88,12 @@ export default function Retorno() {
 
           if (clientesError) {
             Alert.alert("Error", "No se pudieron obtener los clientes");
-            console.log(clientesError);
             return;
           }
 
           setClientes(clientesData);
         } catch (err: any) {
           Alert.alert("Error", err.message);
-          console.error(err);
         }
       };
 
@@ -147,8 +145,7 @@ export default function Retorno() {
     const lastProcessId = processData?.id_proceso;
 
     if (insertError) {
-      console.log("❌ Error insertando proceso:", insertError);
-      Alert.alert("Error", "No se pudo guardar el proceso: " + insertError.message);
+      Alert.alert("Error", "No se pudo guardar el proceso");
       return;
     }
 
@@ -164,7 +161,7 @@ export default function Retorno() {
       })
 
     if (historialError) {
-      Alert.alert("Error al insertar el movimiento en el historial");
+      Alert.alert("Error", "Error al insertar el movimiento en el historial");
       return;
     }
 
@@ -180,7 +177,7 @@ export default function Retorno() {
         .eq("id_lote", selectedLote?.id_lote);
 
       if (subError) {
-        console.log("Error al traer sublotes:", subError);
+        Alert.alert("Error", "Error al traer sublotes");
         return;
       }
 
@@ -194,7 +191,7 @@ export default function Retorno() {
         .eq("id_sublote", selectedSublote?.id_sublote);
 
       if (sublotesUpdateError) {
-        Alert.alert("Error", "Error al actualizar los sublotes: " + sublotesUpdateError.message);
+        Alert.alert("Error", "Error al actualizar los sublotes");
         return;
       }
 
@@ -208,7 +205,7 @@ export default function Retorno() {
           .eq("tipo_proceso", "Retorno");
 
         if (procesosError) {
-          console.log("Error al obtener pesos de procesos:", procesosError);
+          Alert.alert("Error al obtener pesos de procesos");
           return;
         }
 
@@ -226,7 +223,7 @@ export default function Retorno() {
           .eq("id_lote", selectedLote?.id_lote);
 
         if (loteUpdateError) {
-          console.log("Error al actualizar el lote:", loteUpdateError);
+          Alert.alert("Error al actualizar el lote");
           return;
         }
       }
@@ -260,7 +257,6 @@ export default function Retorno() {
 
       if (loteError) {
         Alert.alert("Error", "No se pudo guardar el peso final del lote");
-        console.log(loteError);
         return;
       }
     }
@@ -280,11 +276,10 @@ export default function Retorno() {
           console.log(`Iniciando subida de foto ${i + 1}, URI: ${photoUri}`);
           const fileInfo = await FileSystem.getInfoAsync(photoUri);
           if (!fileInfo.exists) {
-            console.log(`❌ Archivo no encontrado: ${photoUri}`);
+            Alert.alert(`❌ Archivo no encontrado: ${photoUri}`);
             continue;
           }
           if (fileInfo.size > 10 * 1024 * 1024) {
-            console.log(`❌ Foto ${i + 1} excede el tamaño máximo (10MB)`);
             Alert.alert("Error", `La foto ${i + 1} es demasiado grande.`);
             continue;
           }
@@ -314,7 +309,7 @@ export default function Retorno() {
             });
 
           if (uploadError) {
-            console.log(`❌ Error subiendo foto ${i + 1}:`, uploadError);
+            Alert.alert("Error", `❌ Error subiendo foto ${i + 1}`);
             continue;
           }
 
@@ -332,13 +327,12 @@ export default function Retorno() {
           });
 
           if (insertFotoError) {
-            console.log(`❌ Error insertando foto ${i + 1}:`, insertFotoError);
+            Alert.alert("Error", `❌ Error insertando foto ${i + 1}`);
           }
 
           await FileSystem.deleteAsync(photoUri, { idempotent: true });
-          console.log(`✅ Foto ${i + 1} subida y archivo local eliminado`);
         } catch (err) {
-          console.log(`❌ Error procesando foto ${i + 1}:`, err);
+          Alert.alert(`❌ Error procesando foto ${i + 1}:`);
         }
       }
 
@@ -346,7 +340,6 @@ export default function Retorno() {
       await reFetch();
       router.push("/(tabs)/(root)");
     } catch (err) {
-      console.log("❌ Error inesperado:", err);
       Alert.alert("Error", "Error inesperado: " + (err as Error).message);
     } finally {
       setLoading(false);
@@ -369,7 +362,7 @@ export default function Retorno() {
         setLotes(loteData || []);
       };
     } catch (err) {
-      console.log("❌ Error en reFetch:", err);
+      Alert.alert("Error", "Favor de intentar de nuevo");
     }
   };
 
@@ -427,7 +420,7 @@ export default function Retorno() {
           }
         }
       } catch (err) {
-        console.log("❌ Error auto-seleccionando lote/sublote:", err);
+        Alert.alert("Error", "❌ Error auto-seleccionando lote/sublote:");
       }
     };
 
@@ -436,7 +429,6 @@ export default function Retorno() {
 
 
   const handleLoteChange = async (idLote: any) => {
-    // NO bloquear cambios por el param: queremos permitir selección desde el efecto
     const loteObj = lotes.find((l) => l.id_lote === idLote);
     setSelectedLote(loteObj || null);
     setSelectedSublote(null);
@@ -452,7 +444,7 @@ export default function Retorno() {
         .order("nombre_sublote", { ascending: true });
 
       if (subError) {
-        console.error("❌ Error al obtener sublotes:", subError);
+        Alert.alert("Error", "❌ No se pudieron obtener los sublotes");
         return [];
       }
 
@@ -525,6 +517,7 @@ export default function Retorno() {
                 }
               }}
               style={Platform.OS === "ios" ? styles.pickerIOS : styles.picker}
+              itemStyle={{color: "#000"}}
             >
               <Picker.Item label="Selecciona un lote" value="" />
               {lotes.map((lote) => (
@@ -550,6 +543,7 @@ export default function Retorno() {
                     setSelectedSublote(subObj || null);
                   }}
                   style={Platform.OS === "ios" ? styles.pickerIOS : styles.picker}
+                  itemStyle={{color: "#000"}}
                 >
                   <Picker.Item label="Selecciona un sublote" value="" />
                   {sublotes.map((s) => (
@@ -588,6 +582,7 @@ export default function Retorno() {
                   setSelectedCliente(clienteObj || null);
                 }}
                 style={Platform.OS === "ios" ? styles.pickerIOS : styles.picker}
+                itemStyle={{color: "#000"}}
               >
                 <Picker.Item label="Selecciona un cliente" value="" />
                 {clientes.map((cliente) => (

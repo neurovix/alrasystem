@@ -26,7 +26,7 @@ export default function ClientInformation() {
 
       if (clientError) {
         Alert.alert("Ha habido problema al mostrar la informacion del cliente, favor de intentar mas tarde");
-        throw clientError;
+        return;
       }
 
       if (clientInformation && clientInformation.length > 0) {
@@ -39,14 +39,14 @@ export default function ClientInformation() {
   }, [id]);
 
   const updateClientInformation = async () => {
-    const { data: clientUpdate, error: clientUpdateError } = await supabase.from("clientes").update({
+    const { data: _, error: clientUpdateError } = await supabase.from("clientes").update({
       nombre_cliente: clientName,
       empresa: clientCompany,
     }).eq("id_cliente", id);
 
     if (clientUpdateError) {
-      Alert.alert("Ha ocurrido algun error, favor de intentar mas tarde");
-      throw clientUpdateError;
+      Alert.alert("Error", "No se pudo actualizar la informacion");
+      return;
     }
 
     Alert.alert(
@@ -57,10 +57,11 @@ export default function ClientInformation() {
   };
 
   const deleteClient = async () => {
-    const { data: clientInfo, error: clientError } = await supabase.from("clientes").delete().eq("id_cliente", id);
+    const { data: _, error: clientError } = await supabase.from("clientes").delete().eq("id_cliente", id);
 
     if (clientError) {
-      throw clientError;
+      Alert.alert("Error", "No se pudo borrar el cliente");
+      return;
     }
 
     Alert.alert("Cliente borrado exitosamente");

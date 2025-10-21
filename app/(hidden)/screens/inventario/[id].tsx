@@ -25,8 +25,8 @@ export default function MaterialInformation() {
       const { data: materialInformation, error: materialError } = await supabase.from("materiales").select("id_material,nombre_material,cantidad_disponible_kg").eq("id_material", id);
 
       if (materialError) {
-        Alert.alert("Ha habido problema al mostrar la informacion del material");
-        throw materialError;
+        Alert.alert("Error", "No se pudo obtener la informacion del inventario");
+        return;
       }
 
       if (materialInformation && materialInformation.length > 0) {
@@ -39,14 +39,14 @@ export default function MaterialInformation() {
   }, [id]);
 
   const updateMaterialInformation = async () => {
-    const { data: materialUpdate, error: materialUpdateError } = await supabase.from("materiales").update({
+    const { data: _, error: materialUpdateError } = await supabase.from("materiales").update({
       nombre_material: materialName,
       cantidad_disponible_kg: materialQuantity,
     }).eq("id_material", id);
 
     if (materialUpdateError) {
-      Alert.alert("Ha ocurrido algun error, favor de intentar mas tarde");
-      throw materialUpdateError;
+      Alert.alert("Error", "No se pudo actualizar el inventario");
+      return;
     }
 
     Alert.alert(
@@ -57,7 +57,7 @@ export default function MaterialInformation() {
   };
 
   const deleteMaterial = async () => {
-    const { data: materialInfo, error: materialError } = await supabase.from("materiales").delete().eq("id_material", id);
+    const { data: _, error: materialError } = await supabase.from("materiales").delete().eq("id_material", id);
 
     if (materialError) {
       Alert.alert("Ha ocurrido algun problema al borrar el material")

@@ -38,11 +38,12 @@ export default function Configuracion() {
       const { data, error } = await supabase.auth.getUser();
 
       if (error) {
-        console.log(error);
-        throw error;
+        Alert.alert("Error", "No se pudo obtener la informacion del usuario loggeado");
+        return;
       }
 
       const user = data.user;
+
       if (user) {
         const { data: perfil, error: perfilError } = await supabase
           .from("usuarios")
@@ -79,17 +80,20 @@ export default function Configuracion() {
 
     try {
       if (editField === "nombre") {
-        // Actualiza en la tabla 'usuarios'
         const { error } = await supabase
           .from("usuarios")
           .update({ nombre: newValue })
           .eq("id_usuario", userData.id);
 
-        if (error) throw error;
+        if (error) {
+          Alert.alert("Error", "No se pudo actualizar el nombre");
+          return;
+        }
+
         setUserData({ ...userData, nombre: newValue });
+
         Alert.alert("Éxito", "Nombre actualizado correctamente.");
       } else if (editField === "email") {
-        // Actualiza en auth y en 'usuarios' si se guarda también allí
         const { error: authError } = await supabase.auth.updateUser({
           email: newValue,
         });
@@ -97,10 +101,10 @@ export default function Configuracion() {
         if (authError) throw authError;
 
         setUserData({ ...userData, email: newValue });
+
         Alert.alert("Éxito", "Correo actualizado correctamente.");
       }
     } catch (err: any) {
-      console.log(err);
       Alert.alert("Error", "No se pudo actualizar el dato.");
     } finally {
       setModalVisible(false);
@@ -214,7 +218,6 @@ export default function Configuracion() {
           </View>
         </View>
 
-        {/* Modal para editar nombre o email */}
         <Modal
           animationType="slide"
           transparent={true}

@@ -21,8 +21,8 @@ export default function ListMaterial() {
       const { data: materialData, error: materialError } = await supabase.from("materiales").select("id_material,nombre_material").order("nombre_material", { ascending: true });
 
       if (materialError) {
-        Alert.alert("Hubo algun problema al momento de obtener la lista de materiales");
-        throw materialError;
+        Alert.alert("Error", "Hubo algun problema al momento de obtener la lista de materiales");
+        return;
       }
 
       setMaterials(materialData);

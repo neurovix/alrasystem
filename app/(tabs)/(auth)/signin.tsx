@@ -5,9 +5,11 @@ import { Picker } from "@react-native-picker/picker";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
+  Alert,
   Image,
   Keyboard,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   ScrollView,
   StyleSheet,
@@ -26,7 +28,7 @@ export default function SignIn() {
   const [role, setRole] = useState("Operador");
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
-
+  const [showRolePicker, setShowRolePicker] = useState(false);
   const [error, setError] = useState<String | null>("");
   const [loading, setLoading] = useState(false);
 
@@ -54,12 +56,11 @@ export default function SignIn() {
       });
 
       if (signUpError) {
-        throw signUpError;
+        Alert.alert("Error", "No se pudo guardar el nuevo usuario");
+        return;
       }
 
       const userID = signUpData.user?.id;
-
-      console.log(userID);
 
       if (userID) {
         const { data: _, error: insertError } = await supabase
@@ -78,8 +79,8 @@ export default function SignIn() {
         console.log(data);
 
         if (insertError) {
-          console.log(insertError);
-          throw insertError;
+          Alert.alert("Error", "No se pudo guardar el nuevo usuario");
+          return;
         }
       }
 
@@ -89,7 +90,8 @@ export default function SignIn() {
       });
 
       if (loginError) {
-        throw loginError;
+        Alert.alert("Error", "No se pudo iniciar sesion");
+        return;
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ha ocurrido un error");
@@ -101,7 +103,7 @@ export default function SignIn() {
   return (
     <SafeAreaView className="flex-1 bg-gray-100">
       <View className="pt-4 pl-4">
-        <TouchableOpacity onPress={() => router.back()}>
+        <TouchableOpacity onPress={() => router.navigate("/(tabs)")}>
           <AntDesign name="left" size={30} color="green" />
         </TouchableOpacity>
       </View>
@@ -154,28 +156,76 @@ export default function SignIn() {
                   <Text className="text-xl font-ibm-condensed-bold mb-2">
                     Rol
                   </Text>
-                  <View className="bg-white flex flex-row items-center border border-black rounded-2xl px-3">
-                    <Image
-                      source={icons.role}
-                      resizeMode="contain"
-                      className="w-6 h-6 mr-3"
-                    />
-                    <View className="flex-1">
-                      <Picker
-                        selectedValue={role}
-                        onValueChange={(itemValue) => setRole(itemValue)}
-                        style={Platform.OS === "ios" ? styles.pickerIOS : styles.picker}
+
+                  {Platform.OS === "ios" ? (
+                    <>
+                      <TouchableOpacity
+                        onPress={() => setShowRolePicker(true)}
+                        className="bg-white flex flex-row items-center border border-black rounded-2xl px-3 py-3"
                       >
-                        <Picker.Item label="Selecciona un rol" value="" />
-                        <Picker.Item label="Operador" value="Operador" />
-                        <Picker.Item
-                          label="Administrador"
-                          value="Administrador"
+                        <Image
+                          source={icons.role}
+                          resizeMode="contain"
+                          className="w-6 h-6 mr-3"
                         />
-                      </Picker>
+                        <Text className="text-lg text-gray-700">
+                          {role ? role : "Selecciona un rol"}
+                        </Text>
+                      </TouchableOpacity>
+
+                      <Modal
+                        visible={showRolePicker}
+                        transparent
+                        animationType="slide"
+                        onRequestClose={() => setShowRolePicker(false)}
+                      >
+                        <View className="flex-1 justify-end bg-black/50">
+                          <View className="bg-white rounded-t-3xl p-4">
+                            <View className="flex-row justify-between mb-2">
+                              <TouchableOpacity onPress={() => setShowRolePicker(false)}>
+                                <Text className="text-green-600 font-bold text-lg">Cerrar</Text>
+                              </TouchableOpacity>
+                            </View>
+
+                            <Picker
+                              selectedValue={role}
+                              itemStyle={{ color: "#000" }}
+                              onValueChange={(itemValue) => {
+                                setRole(itemValue);
+                                setShowRolePicker(false);
+                              }}
+                            >
+                              <Picker.Item label="Selecciona un rol" value="" />
+                              <Picker.Item label="Operador" value="Operador" />
+                              <Picker.Item label="Administrador" value="Administrador" />
+                            </Picker>
+                          </View>
+                        </View>
+                      </Modal>
+                    </>
+                  ) : (
+                    <View className="bg-white flex flex-row items-center border border-black rounded-2xl px-3">
+                      <Image
+                        source={icons.role}
+                        resizeMode="contain"
+                        className="w-6 h-6 mr-3"
+                      />
+                      <View className="flex-1">
+                        <Picker
+                          selectedValue={role}
+                          onValueChange={(itemValue) => setRole(itemValue)}
+                          style={styles.picker}
+                          dropdownIconColor="black"
+                        >
+                          <Picker.Item label="Selecciona un rol" value="" />
+                          <Picker.Item label="Operador" value="Operador" />
+                          <Picker.Item label="Administrador" value="Administrador" />
+                        </Picker>
+                      </View>
                     </View>
-                  </View>
+                  )}
                 </View>
+
 
                 <View className="pb-3">
                   <Text className="text-xl font-ibm-condensed-bold mb-2">
@@ -295,5 +345,6 @@ const styles = StyleSheet.create({
   pickerIOS: {
     height: 200,
     fontSize: 16,
+    color: '#000',
   },
 });

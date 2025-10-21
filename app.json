@@ -17,7 +17,11 @@
         "foregroundImage": "./assets/images/logo_alra.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.CAMERA"
+      ],
+      "package": "com.fernando.nrv.alra"
     },
     "web": {
       "output": "static",
@@ -41,6 +45,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "a54b4191-6e6f-4972-a155-8a60e3092f89"
+      }
     }
   }
 }

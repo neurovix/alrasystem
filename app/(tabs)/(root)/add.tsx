@@ -104,7 +104,7 @@ export default function Add() {
             .limit(1);
 
           if (lotesError) {
-            console.log("❌ Error obteniendo último lote:", lotesError);
+            Alert.alert("Error", "❌ Error obteniendo último lote");
             setLastLoteId(1);
           } else if (lotesData && lotesData.length > 0) {
             setLastLoteId(lotesData[0].id_lote + 1);
@@ -121,6 +121,7 @@ export default function Add() {
           const { data: clientesData } = await supabase
             .from("clientes")
             .select("id_cliente, nombre_cliente, empresa");
+
           setClientes(clientesData || []);
 
           const { data, error } = await supabase.auth.getUser();
@@ -128,7 +129,7 @@ export default function Add() {
 
           setUserId(data.user.id);
         } catch (err) {
-          console.log("❌ Error inesperado:", err);
+          Alert.alert("Error", "❌ Error inesperado, favor de intentar mas tarde");
         }
       };
 
@@ -155,7 +156,7 @@ export default function Add() {
         .limit(1);
 
       if (lotesError) {
-        console.log("❌ Error obteniendo último lote:", lotesError);
+        Alert.alert("Error", "❌ Error obteniendo último lote");
         setLastLoteId(1);
       } else if (lotesData && lotesData.length > 0) {
         setLastLoteId(lotesData[0].id_lote + 1);
@@ -163,7 +164,7 @@ export default function Add() {
         setLastLoteId(1);
       }
     } catch (err) {
-      console.log("❌ Error en reFetch:", err);
+      Alert.alert("Error", "❌ Favor de intentar mas tarde");
       setLastLoteId(1);
     }
   };
@@ -212,7 +213,6 @@ export default function Add() {
       });
 
       if (insertError) {
-        console.log("❌ Error insertando lote:", insertError);
         Alert.alert("Error", "No se pudo guardar el lote: " + insertError.message);
         return;
       }
@@ -255,7 +255,6 @@ export default function Add() {
           .insert(sublotesAInsertar);
 
         if (sublotesError) {
-          console.log("❌ Error insertando sublotes:", sublotesError);
           Alert.alert("Error", "No se pudieron guardar los sublotes");
           return;
         }
@@ -279,7 +278,6 @@ export default function Add() {
       const lastProcessId = procesoData?.id_proceso;
 
       if (procesoError) {
-        console.log("❌ Error insertando proceso:", procesoError);
         Alert.alert("Error", "No se pudo guardar el proceso: " + procesoError.message);
         return;
       }
@@ -295,7 +293,6 @@ export default function Add() {
         });
 
       if (historialError) {
-        console.log("❌ Error insertando movimiento:", historialError);
         Alert.alert("Error", "No se pudo guardar el movimiento: " + historialError.message);
         return;
       }
@@ -314,7 +311,6 @@ export default function Add() {
         .eq("id_material", selectedMaterial)
 
       if (materialError) {
-        console.log("❌ Error actualizando cantidad de material:", materialError);
         Alert.alert("Error", "No se pudo actualizar el inventario");
         return;
       }
@@ -335,21 +331,18 @@ export default function Add() {
           console.log(`Iniciando subida de foto ${i + 1}, URI: ${photoUri}`);
           const fileInfo = await FileSystem.getInfoAsync(photoUri);
           if (!fileInfo.exists) {
-            console.log(`❌ Archivo no encontrado: ${photoUri}`);
+            Alert.alert("Error", `❌ Archivo no encontrado: ${photoUri}`);
             continue;
           }
           if (fileInfo.size > 10 * 1024 * 1024) {
-            console.log(`❌ Foto ${i + 1} excede el tamaño máximo (10MB)`);
             Alert.alert("Error", `La foto ${i + 1} es demasiado grande.`);
             continue;
           }
 
-          // Read file as base64
           const base64 = await FileSystem.readAsStringAsync(photoUri, {
             encoding: FileSystem.EncodingType.Base64,
           });
 
-          // Convert base64 to ArrayBuffer
           const binary = atob(base64);
           const arrayBuffer = new Uint8Array(binary.length);
           for (let j = 0; j < binary.length; j++) {
@@ -369,7 +362,7 @@ export default function Add() {
             });
 
           if (uploadError) {
-            console.log(`❌ Error subiendo foto ${i + 1}:`, uploadError);
+            Alert.alert(`❌ Error subiendo foto ${i + 1}`);
             continue;
           }
 
@@ -386,14 +379,13 @@ export default function Add() {
           });
 
           if (insertFotoError) {
-            console.log(`❌ Error insertando foto ${i + 1}:`, insertFotoError);
+            Alert.alert("Error", `❌ Error insertando foto ${i + 1}`);
+            continue;
           }
 
-          // Clean up local file
           await FileSystem.deleteAsync(photoUri, { idempotent: true });
-          console.log(`✅ Foto ${i + 1} subida y archivo local eliminado`);
         } catch (err) {
-          console.log(`❌ Error procesando foto ${i + 1}:`, err);
+          Alert.alert("Error", `❌ Error procesando foto ${i + 1}`);
         }
       }
 
@@ -401,7 +393,6 @@ export default function Add() {
       await reFetch();
       router.push("/(tabs)/(root)");
     } catch (err) {
-      console.log("❌ Error inesperado:", err);
       Alert.alert("Error", "Error inesperado: " + (err as Error).message);
     } finally {
       setLoading(false);
@@ -459,6 +450,7 @@ export default function Add() {
               selectedValue={selectedMaterial}
               onValueChange={(itemValue) => setSelectedMaterial(itemValue)}
               style={Platform.OS === "ios" ? styles.pickerIOS : styles.picker}
+              itemStyle={{color:"#000"}}
             >
               <Picker.Item label="Selecciona un material" value="" />
               {materiales.map((mat) => (
@@ -572,6 +564,7 @@ export default function Add() {
               selectedValue={selectedCliente}
               onValueChange={(itemValue) => setSelectedCliente(itemValue)}
               style={Platform.OS === "ios" ? styles.pickerIOS : styles.picker}
+              itemStyle={{color: "#000"}}
             >
               <Picker.Item label="Selecciona un cliente" value="" />
               {clientes.map((cliente) => (

@@ -43,7 +43,7 @@ export default function LogIn() {
 
       if (loginError) {
         Alert.alert("Error", "Correo o contraseña incorrectos");
-        throw loginError;
+        return;
       }
 
       const { data: perfil, error: perfilError } = await supabase
@@ -54,7 +54,6 @@ export default function LogIn() {
 
       if (perfilError) {
         Alert.alert("Error", "No se pudo obtener el estatus del usuario");
-        console.log("Perfil error: ", perfilError);
         return;
       }
 

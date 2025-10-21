@@ -4,6 +4,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from 'react';
 import {
+  Alert,
   ScrollView,
   Text,
   TouchableOpacity,
@@ -20,15 +21,14 @@ export default function ClientInformation() {
 
   useEffect(() => {
     const fetchClientInfo = async () => {
-      // 1️⃣ Obtener datos del cliente
       const { data: clientData, error: clientError } = await supabase
         .from("clientes")
         .select("nombre_cliente, empresa")
         .eq("id_cliente", id)
-        .single(); // para obtener un solo registro
+        .single();
 
       if (clientError) {
-        console.log(clientError);
+        Alert.alert("Error", "No se pudo obtener la informacion del cliente, intente de nuevo mas tarde");
         return;
       }
 
@@ -37,14 +37,13 @@ export default function ClientInformation() {
         setClientCompany(clientData.empresa);
       }
 
-      // 2️⃣ Obtener lotes del cliente (si los hay)
       const { data: lotesData, error: lotesError } = await supabase
         .from("lotes")
         .select("id_lote, nombre_lote, estado_actual")
         .eq("id_cliente", id);
 
       if (lotesError) {
-        console.log(lotesError);
+        Alert.alert("Error", "No se pudieron obtener los lotes asignados al cliente");
         return;
       }
 
@@ -89,7 +88,6 @@ export default function ClientInformation() {
           <Text className='text-white font-ibm-condensed-bold text-2xl'>Editar</Text>
         </TouchableOpacity>
 
-        {/* Renderizamos los lotes */}
         {loteData.map((item) => (
           <View key={item.id}>
             <LoteBox id={item.id} name={item.name} status={item.status} etapa={item.etapa} />

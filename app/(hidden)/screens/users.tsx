@@ -23,14 +23,12 @@ export default function Users() {
             .order("estatus", {ascending: true});
 
           if (usersError) {
-            console.error(usersError);
             Alert.alert("Error", "No se han podido obtener los usuarios");
             return;
           }
 
           setUsers(usersData || []);
         } catch (err) {
-          console.error("Error obteniendo usuarios:", err);
           Alert.alert("Error", "Ocurrió un error al obtener los usuarios");
         } finally {
           setLoading(false);
