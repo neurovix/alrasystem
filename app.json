@@ -17,8 +17,8 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#16a34a",
-        "foregroundImage": "./assets/images/logo_alra.png"
+        "backgroundColor": "#ffffff",
+        "foregroundImage": "./assets/images/icon_logo.png"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
@@ -42,14 +42,14 @@
           "backgroundColor": "#16a34a"
         }
       ],
-      "expo-web-browser",
-      "expo-font",
       [
-        "expo-barcode-scanner",
+        "expo-camera",
         {
           "cameraPermission": "Permitir que la aplicación use la cámara para escanear códigos QR."
         }
-      ]
+      ],
+      "expo-web-browser",
+      "expo-font"
     ],
     "experiments": {
       "typedRoutes": true,
