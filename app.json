@@ -9,7 +9,11 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.fernando.nrv.alra",
+      "infoPlist": {
+        "NSCameraUsageDescription": "La aplicación necesita acceder a la cámara para escanear códigos QR."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -40,7 +44,12 @@
       ],
       "expo-web-browser",
       "expo-font",
-      "expo-barcode-scanner"
+      [
+        "expo-barcode-scanner",
+        {
+          "cameraPermission": "Permitir que la aplicación use la cámara para escanear códigos QR."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
