@@ -4,6 +4,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Picker } from "@react-native-picker/picker";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import * as FileSystem from 'expo-file-system/legacy';
+import * as ImageManipulator from 'expo-image-manipulator';
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -245,14 +246,29 @@ export default function Molienda() {
             continue;
           }
 
-          const base64 = await FileSystem.readAsStringAsync(photoUri, {
+          const compressedPhoto = await ImageManipulator.manipulateAsync(
+            photoUri,
+            [{ resize: { width: 800 } }],
+            { compress: 0.5, format: ImageManipulator.SaveFormat.JPEG }
+          );
+
+          await FileSystem.deleteAsync(photoUri, { idempotent: true });
+
+          const base64 = await FileSystem.readAsStringAsync(compressedPhoto.uri, {
             encoding: FileSystem.EncodingType.Base64,
           });
 
-          const binary = atob(base64);
-          const arrayBuffer = new Uint8Array(binary.length);
-          for (let j = 0; j < binary.length; j++) {
-            arrayBuffer[j] = binary.charCodeAt(j);
+          let arrayBuffer;
+          try {
+            const binary = atob(base64);
+            arrayBuffer = new Uint8Array(binary.length);
+            for (let j = 0; j < binary.length; j++) {
+              arrayBuffer[j] = binary.charCodeAt(j);
+            }
+          } catch (convError) {
+            Alert.alert("Error", `❌ Memoria insuficiente para foto ${i + 1}. Intenta con menos fotos.`);
+            await FileSystem.deleteAsync(compressedPhoto.uri, { idempotent: true });
+            continue;
           }
 
           const fileExt = photoUri.split(".").pop()?.toLowerCase() || "jpg";
@@ -292,10 +308,12 @@ export default function Molienda() {
             return;
           }
 
-          await FileSystem.deleteAsync(photoUri, { idempotent: true });
+          await FileSystem.deleteAsync(compressedPhoto.uri, { idempotent: true });
+          await new Promise((resolve) => setTimeout(resolve, 300));
         } catch (err) {
           Alert.alert("Error", "No se pudo procesar la foto");
         }
+        await FileSystem.deleteAsync(photoUri, { idempotent: true });
       }
 
       Alert.alert("Éxito", "✅ Molienda guardada correctamente");
@@ -451,7 +469,7 @@ export default function Molienda() {
               selectedValue={selectedLote?.id_lote || ""}
               onValueChange={handleLoteChange}
               style={Platform.OS === "ios" ? styles.pickerIOS : styles.picker}
-              itemStyle={{color: "#000"}}
+              itemStyle={{ color: "#000" }}
             >
               <Picker.Item label="Selecciona un lote" value="" />
               {lotes.map((lote) => (

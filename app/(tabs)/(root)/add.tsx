@@ -4,6 +4,7 @@ import { Picker } from "@react-native-picker/picker";
 import { CameraView, useCameraPermissions } from "expo-camera";
 import CheckBox from "expo-checkbox";
 import * as FileSystem from 'expo-file-system/legacy';
+import * as ImageManipulator from 'expo-image-manipulator';
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -323,12 +324,11 @@ export default function Add() {
       const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
       for (let i = 0; i < fotosValidas.length; i++) {
-        await delay(500);
+        await delay(1000);
         const photoUri = fotosValidas[i];
         if (!photoUri) continue;
 
         try {
-          console.log(`Iniciando subida de foto ${i + 1}, URI: ${photoUri}`);
           const fileInfo = await FileSystem.getInfoAsync(photoUri);
           if (!fileInfo.exists) {
             Alert.alert("Error", `❌ Archivo no encontrado: ${photoUri}`);
@@ -339,14 +339,29 @@ export default function Add() {
             continue;
           }
 
-          const base64 = await FileSystem.readAsStringAsync(photoUri, {
+          const compressedPhoto = await ImageManipulator.manipulateAsync(
+            photoUri,
+            [{ resize: { width: 800 } }],
+            { compress: 0.5, format: ImageManipulator.SaveFormat.JPEG }
+          );
+
+          await FileSystem.deleteAsync(photoUri, { idempotent: true });
+
+          const base64 = await FileSystem.readAsStringAsync(compressedPhoto.uri, {
             encoding: FileSystem.EncodingType.Base64,
           });
 
-          const binary = atob(base64);
-          const arrayBuffer = new Uint8Array(binary.length);
-          for (let j = 0; j < binary.length; j++) {
-            arrayBuffer[j] = binary.charCodeAt(j);
+          let arrayBuffer;
+          try {
+            const binary = atob(base64);
+            arrayBuffer = new Uint8Array(binary.length);
+            for (let j = 0; j < binary.length; j++) {
+              arrayBuffer[j] = binary.charCodeAt(j);
+            }
+          } catch (convError) {
+            Alert.alert("Error", `❌ Memoria insuficiente para foto ${i + 1}. Intenta con menos fotos.`);
+            await FileSystem.deleteAsync(compressedPhoto.uri, { idempotent: true });
+            continue;
           }
 
           const fileExt = photoUri.split(".").pop()?.toLowerCase() || "jpg";
@@ -383,10 +398,12 @@ export default function Add() {
             continue;
           }
 
-          await FileSystem.deleteAsync(photoUri, { idempotent: true });
+          await FileSystem.deleteAsync(compressedPhoto.uri, { idempotent: true });
+          await new Promise((resolve) => setTimeout(resolve, 300));
         } catch (err) {
           Alert.alert("Error", `❌ Error procesando foto ${i + 1}`);
         }
+        await FileSystem.deleteAsync(photoUri, { idempotent: true });
       }
 
       Alert.alert("Éxito", "✅ Lote guardado exitosamente");
@@ -450,7 +467,7 @@ export default function Add() {
               selectedValue={selectedMaterial}
               onValueChange={(itemValue) => setSelectedMaterial(itemValue)}
               style={Platform.OS === "ios" ? styles.pickerIOS : styles.picker}
-              itemStyle={{color:"#000"}}
+              itemStyle={{ color: "#000" }}
             >
               <Picker.Item label="Selecciona un material" value="" />
               {materiales.map((mat) => (
@@ -564,7 +581,7 @@ export default function Add() {
               selectedValue={selectedCliente}
               onValueChange={(itemValue) => setSelectedCliente(itemValue)}
               style={Platform.OS === "ios" ? styles.pickerIOS : styles.picker}
-              itemStyle={{color: "#000"}}
+              itemStyle={{ color: "#000" }}
             >
               <Picker.Item label="Selecciona un cliente" value="" />
               {clientes.map((cliente) => (
