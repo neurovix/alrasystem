@@ -102,7 +102,7 @@ export default function Home() {
 
       const { data: sessionData, error: sessionError } = await supabase.auth.getUser();
       if (sessionError) throw sessionError;
-      
+
       const user = sessionData?.user;
 
       if (!user) {
