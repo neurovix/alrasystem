@@ -1,12 +1,12 @@
 {
   "expo": {
-    "name": "alra",
+    "name": "ALRA PLASTIC",
     "slug": "alra",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/logo_alra.png",
+    "icon": "./assets/images/icon_default_logo.png",
     "scheme": "alra",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
@@ -18,7 +18,7 @@
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#ffffff",
-        "foregroundImage": "./assets/images/icon_logo.png"
+        "foregroundImage": "./assets/images/icon_default_logo.png"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,

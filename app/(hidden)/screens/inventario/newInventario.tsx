@@ -46,10 +46,10 @@ export default function NewInventario() {
       </View>
       <ScrollView
         className="bg-white px-5 pt-5"
-        contentContainerStyle={{ paddingBottom: 30 }}
+        contentContainerStyle={{ paddingBottom: 40 }}
       >
-        <View className='flex items-center mx-auto justify-center my-20 bg-gray-400 w-40 h-40 rounded-full'>
-          <MaterialIcons name="recycling" size={70} color="white" />
+        <View className='flex items-center mx-auto justify-center my-20 bg-gray-400 w-32 h-32 rounded-full'>
+          <MaterialIcons name="recycling" size={60} color="white" />
         </View>
         <Text className='font-ibm-condensed-bold text-2xl'>Detalles de material</Text>
         <View className='flex flex-col mt-4'>

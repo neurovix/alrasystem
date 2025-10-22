@@ -91,7 +91,7 @@ export default function LogIn() {
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <ScrollView
             className="flex-1"
-            contentContainerStyle={{ flexGrow: 1, paddingBottom: 50 }}
+            contentContainerStyle={{ flexGrow: 1, paddingBottom: 100 }}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
           >
