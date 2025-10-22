@@ -96,6 +96,7 @@ export default function Home() {
       setLoading(true);
 
       const { data: sessionData } = await supabase.auth.getUser();
+      
       const user = sessionData?.user;
 
       if (!user) {

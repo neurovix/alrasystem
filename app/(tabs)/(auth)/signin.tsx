@@ -39,6 +39,8 @@ export default function SignIn() {
     Password: string;
   };
 
+  const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
   const onSubmmit = async (data: SignUpForm) => {
     try {
       setLoading(true);
@@ -93,6 +95,8 @@ export default function SignIn() {
         Alert.alert("Error", "No se pudo iniciar sesion");
         return;
       }
+
+      await sleep(1000);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ha ocurrido un error");
     } finally {

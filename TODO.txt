@@ -9,3 +9,4 @@
 # Agregar auth a todas las pantallas para verificacion de estatus por usuario (index,inventario) -- DONE
 # Detalles de sublotes -- DONE
 # Verificar detalles de lotes -- DONE
+# Checar error perfil en signIn() -> /(tabs)/index.html
