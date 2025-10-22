@@ -37,7 +37,7 @@ export default function Add() {
   const [checkedMaquila, setCheckedMaquila] = useState<boolean>(false);
   const [checkedSublote, setCheckedSublote] = useState<boolean>(false);
   const [userId, setUserId] = useState<any>(null);
-  const [photos, setPhotos] = useState<(string | null)[]>(Array(6).fill(null));
+  const [photos, setPhotos] = useState<(string | null)[]>(Array(4).fill(null));
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
   const [numeroDeSublotes, setNumeroDeSublotes] = useState<string>("");
   const [checkedPesosDiferentes, setCheckedPesosDiferentes] = useState<boolean>(false);
@@ -328,6 +328,9 @@ export default function Add() {
         const photoUri = fotosValidas[i];
         if (!photoUri) continue;
 
+        let base64: string | null = null;
+        let arrayBuffer: Uint8Array | null = null;
+
         try {
           const fileInfo = await FileSystem.getInfoAsync(photoUri);
           if (!fileInfo.exists) {
@@ -347,13 +350,13 @@ export default function Add() {
 
           await FileSystem.deleteAsync(photoUri, { idempotent: true });
 
-          const base64 = await FileSystem.readAsStringAsync(compressedPhoto.uri, {
+          base64 = await FileSystem.readAsStringAsync(compressedPhoto.uri, {
             encoding: FileSystem.EncodingType.Base64,
           });
 
-          let arrayBuffer;
+          let binary: string;
           try {
-            const binary = atob(base64);
+            binary = atob(base64);
             arrayBuffer = new Uint8Array(binary.length);
             for (let j = 0; j < binary.length; j++) {
               arrayBuffer[j] = binary.charCodeAt(j);
@@ -378,6 +381,7 @@ export default function Add() {
 
           if (uploadError) {
             Alert.alert(`❌ Error subiendo foto ${i + 1}`);
+            await FileSystem.deleteAsync(compressedPhoto.uri, { idempotent: true });
             continue;
           }
 
@@ -395,16 +399,24 @@ export default function Add() {
 
           if (insertFotoError) {
             Alert.alert("Error", `❌ Error insertando foto ${i + 1}`);
+            await FileSystem.deleteAsync(compressedPhoto.uri, { idempotent: true });
             continue;
           }
 
           await FileSystem.deleteAsync(compressedPhoto.uri, { idempotent: true });
-          await new Promise((resolve) => setTimeout(resolve, 300));
+          base64 = null;
+          arrayBuffer = null;
+          await new Promise((resolve) => setTimeout(resolve, 500));
         } catch (err) {
           Alert.alert("Error", `❌ Error procesando foto ${i + 1}`);
+          await FileSystem.deleteAsync(photoUri, { idempotent: true });
+          base64 = null;
+          arrayBuffer = null;
         }
         await FileSystem.deleteAsync(photoUri, { idempotent: true });
       }
+
+      await new Promise((resolve) => setTimeout(resolve, 2000));
 
       Alert.alert("Éxito", "✅ Lote guardado exitosamente");
       await reFetch();

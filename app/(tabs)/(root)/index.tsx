@@ -3,7 +3,7 @@ import { supabase } from "@/lib/supabase";
 import AntDesign from '@expo/vector-icons/AntDesign';
 import { CameraView, useCameraPermissions } from "expo-camera";
 import { router, useFocusEffect } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Circle, G, Path } from "react-native-svg";
@@ -41,11 +41,16 @@ export default function Home() {
   const [showScanner, setShowScanner] = useState(false);
   const [scanned, setScanned] = useState(false);
   const [permission, requestPermission] = useCameraPermissions();
+  const [lastFetchTime, setLastFetchTime] = useState<number>(0);
 
   useFocusEffect(
     useCallback(() => {
+      const now = Date.now();
+      if (now - lastFetchTime < 5000) {
+        return;
+      }
       fetchData();
-    }, [])
+    }, [lastFetchTime])
   );
 
   useEffect(() => {
@@ -95,7 +100,8 @@ export default function Home() {
     try {
       setLoading(true);
 
-      const { data: sessionData } = await supabase.auth.getUser();
+      const { data: sessionData, error: sessionError } = await supabase.auth.getUser();
+      if (sessionError) throw sessionError;
       
       const user = sessionData?.user;
 
@@ -111,10 +117,7 @@ export default function Home() {
         .eq("id_usuario", user.id)
         .single();
 
-      if (perfilError) {
-        Alert.alert("Error", "❌ Error al obtener perfil");
-        return;
-      }
+      if (perfilError) throw perfilError;
 
       setUserData({
         estatus: perfil.estatus,
@@ -135,29 +138,23 @@ export default function Home() {
       const firstDayISO = firstDay.toISOString();
       const lastDayISO = lastDay.toISOString();
 
-      const { count: enProcesoCount, error: error1 } = await supabase
+      const { count: enProcesoCount, error: error1, count: count1 } = await supabase
         .from("lotes")
         .select("*", { count: "exact", head: true })
         .not("estado_actual", "eq", "Finalizado")
         .gte("fecha_recibido", firstDayISO)
         .lte("fecha_recibido", lastDayISO);
 
-      if (error1) {
-        Alert.alert("Error", "No se pudieron obtener los procesos");
-        return;
-      }
+      if (error1) throw error1;
 
-      const { count: finalizadosCount, error: error2 } = await supabase
+      const { count: finalizadosCount, error: error2, count: count2 } = await supabase
         .from("lotes")
         .select("*", { count: "exact", head: true })
         .eq("estado_actual", "Finalizado")
         .gte("fecha_recibido", firstDayISO)
         .lte("fecha_recibido", lastDayISO);
 
-      if (error2) {
-        Alert.alert("Error", "Error al obtener los lotes");
-        return;
-      }
+      if (error2) throw error2;
 
       const total = (enProcesoCount || 0) + (finalizadosCount || 0);
 
@@ -167,6 +164,8 @@ export default function Home() {
         { label: "En proceso", value: enProcesoCount || 0, color: "#eab308" },
         { label: "Finalizados", value: finalizadosCount || 0, color: "#059669" },
       ]);
+
+      setLastFetchTime(Date.now());
     } catch (error) {
       Alert.alert("Error", "Ocurrió un problema al cargar la información.");
     } finally {
@@ -174,25 +173,27 @@ export default function Home() {
     }
   }
 
+  const slicesLote = useMemo(() => {
+    let startAngleLote = 0;
+    const validData = dataLotes.filter((item) => item.value > 0);
 
-  let startAngleLote = 0;
-  const validData = dataLotes.filter((item) => item.value > 0);
+    if (totalLotes <= 0 || validData.length === 0) {
+      return [<Circle key="empty" cx="75" cy="75" r="70" fill="#f0f9ff" />];
+    }
 
-  let slicesLote: any[] = [];
-  if (totalLotes > 0) {
     if (validData.length === 1) {
-      slicesLote = [
+      return [
         <Circle key="full" cx="75" cy="75" r="70" fill={validData[0].color} />,
       ];
-    } else {
-      slicesLote = validData.map((item, index) => {
-        const angle = (item.value / totalLotes) * 2 * Math.PI;
-        const slice = createPieSlice(75, 75, 70, startAngleLote, startAngleLote + angle, item.color);
-        startAngleLote += angle;
-        return <G key={index}>{slice}</G>;
-      });
     }
-  }
+
+    return validData.map((item, index) => {
+      const angle = (item.value / totalLotes) * 2 * Math.PI;
+      const slice = createPieSlice(75, 75, 70, startAngleLote, startAngleLote + angle, item.color);
+      startAngleLote += angle;
+      return <G key={index}>{slice}</G>;
+    });
+  }, [dataLotes, totalLotes]);
 
   if (loading) {
     return (
