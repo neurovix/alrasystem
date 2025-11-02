@@ -81,11 +81,7 @@ CREATE TABLE procesos (
     merma_kg NUMERIC NOT NULL,
     fecha_proceso TIMESTAMP NOT NULL,
     id_cliente INT REFERENCES clientes (id_cliente) ON DELETE SET NULL,
-    created_by UUID NOT NULL REFERENCES usuarios (id_usuario) ON DELETE SET NULL,
-    CONSTRAINT chk_lote_o_sublote CHECK (
-        (id_lote IS NOT NULL AND id_sublote IS NULL)
-        OR (id_lote IS NULL AND id_sublote IS NOT NULL)
-    )
+    created_by UUID NOT NULL REFERENCES usuarios (id_usuario) ON DELETE SET NULL
 );
 
 -- 7. Fotos
@@ -94,11 +90,7 @@ CREATE TABLE fotos (
     id_lote INT REFERENCES lotes (id_lote) ON DELETE CASCADE,
     id_sublote INT REFERENCES sublotes (id_sublote) ON DELETE CASCADE,
     id_proceso INT REFERENCES procesos (id_proceso) ON DELETE SET NULL,
-    url_foto TEXT NOT NULL,
-    CONSTRAINT chk_foto_lote_o_sublote CHECK (
-        (id_lote IS NOT NULL AND id_sublote IS NULL)
-        OR (id_lote IS NULL AND id_sublote IS NOT NULL)
-    )
+    url_foto TEXT NOT NULL
 );
 
 -- 8. Inventario (movimientos)
@@ -110,11 +102,7 @@ CREATE TABLE inventario_movimientos (
     fecha TIMESTAMPTZ NOT NULL DEFAULT now(),
     id_lote INT REFERENCES lotes (id_lote) ON DELETE SET NULL,
     id_sublote INT REFERENCES sublotes (id_sublote) ON DELETE SET NULL,
-    created_by UUID NOT NULL REFERENCES usuarios (id_usuario) ON DELETE SET NULL,
-    CONSTRAINT chk_inv_lote_o_sublote CHECK (
-        (id_lote IS NOT NULL AND id_sublote IS NULL)
-        OR (id_lote IS NULL AND id_sublote IS NOT NULL)
-    )
+    created_by UUID NOT NULL REFERENCES usuarios (id_usuario) ON DELETE SET NULL
 );
 
 -- ===============================

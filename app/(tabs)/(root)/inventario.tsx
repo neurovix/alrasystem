@@ -258,26 +258,28 @@ export default function Inventario() {
           </>
         )}
 
-        <View className="w-full flex flex-row items-center justify-between mt-4">
-          <TouchableOpacity
-            className="flex-1 bg-green-600 py-5 flex flex-row items-center justify-center rounded-3xl mr-3 shadow-md active:opacity-80"
-            activeOpacity={0.8}
-            onPress={() => setModalVisible(true)}
-          >
-            <AntDesign name="file-pdf" size={26} color="white" />
-            <Text className="text-white font-ibm-condensed-bold ml-2 text-xl">
-              Exportar PDF
-            </Text>
-          </TouchableOpacity>
+        {isAdmin &&
+          <View className="w-full flex flex-row items-center justify-between mt-4">
+            <TouchableOpacity
+              className="flex-1 bg-green-600 py-5 flex flex-row items-center justify-center rounded-3xl mr-3 shadow-md active:opacity-80"
+              activeOpacity={0.8}
+              onPress={() => setModalVisible(true)}
+            >
+              <AntDesign name="file-pdf" size={26} color="white" />
+              <Text className="text-white font-ibm-condensed-bold ml-2 text-xl">
+                Exportar PDF
+              </Text>
+            </TouchableOpacity>
 
-          <TouchableOpacity
-            onPress={() => router.navigate("/screens/inventario/newInventario")}
-            className="bg-green-600 p-5 rounded-full shadow-md items-center justify-center active:opacity-80"
-            activeOpacity={0.8}
-          >
-            <FontAwesome6 name="add" size={26} color="white" />
-          </TouchableOpacity>
-        </View>
+            <TouchableOpacity
+              onPress={() => router.navigate("/screens/inventario/newInventario")}
+              className="bg-green-600 p-5 rounded-full shadow-md items-center justify-center active:opacity-80"
+              activeOpacity={0.8}
+            >
+              <FontAwesome6 name="add" size={26} color="white" />
+            </TouchableOpacity>
+          </View>
+        }
 
         <Modal
           animationType="slide"

@@ -1,7 +1,7 @@
 import { supabase } from "@/lib/supabase";
-import { Ionicons } from "@expo/vector-icons";
-import { router, useLocalSearchParams } from "expo-router";
-import { useEffect, useState } from "react";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
+import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -24,76 +24,78 @@ export default function SubloteInformation() {
   const [loading, setLoading] = useState<boolean>(true);
   const [pesoFinal, setPesoFinal] = useState<number | null>(null);
 
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        setLoading(true);
+  useFocusEffect(
+    useCallback(() => {
+      async function fetchData() {
+        try {
+          setLoading(true);
 
-        const idNum = parseInt(id || "0");
+          const idNum = parseInt(id || "0");
 
-        if (isNaN(idNum)) {
+          if (isNaN(idNum)) {
+            Alert.alert("Error", "Favor de intentar mas tarde");
+            return;
+          }
+
+          const { data: subloteData, error: subloteError } = await supabase
+            .from("sublotes")
+            .select("*, lote: id_lote (*, material: id_material (nombre_material), cliente: id_cliente (nombre_cliente))")
+            .eq("id_sublote", idNum)
+            .single();
+
+          if (subloteError) {
+            Alert.alert("Error", "No se pudieron obtener los sublotes");
+            return;
+          }
+
+          if (subloteData) {
+            setSublote(subloteData);
+            setMaterial(subloteData.lote?.material?.nombre_material || "Desconocido");
+            setCliente(subloteData.lote?.cliente?.nombre_cliente || "Desconocido");
+            setNombreLote(subloteData.lote?.nombre_lote || "Desconocido");
+          }
+
+          const { data: procData, error: procError } = await supabase
+            .from("procesos")
+            .select("*, cliente: id_cliente (nombre_cliente)")
+            .eq("id_sublote", idNum)
+            .order("fecha_proceso", { ascending: true });
+
+          if (procError) {
+            Alert.alert("Error", "No se pudieron obtener los procesos del sublote");
+            return;
+          }
+
+          setProcesos(procData || []);
+
+          if (procData && procData.length > 0) {
+            const lastProceso = procData[procData.length - 1];
+            setPesoFinal(lastProceso.peso_salida_kg);
+          }
+
+          const { data: fotosData, error: fotosError } = await supabase
+            .from("fotos")
+            .select("*")
+            .eq("id_sublote", idNum);
+
+          if (fotosError) {
+            Alert.alert("Error", "No se pudieron obtener las fotos del sublote");
+            return;
+          }
+
+          setFotos(fotosData || []);
+        } catch (error) {
           Alert.alert("Error", "Favor de intentar mas tarde");
-          return;
+        } finally {
+          setLoading(false);
         }
-
-        const { data: subloteData, error: subloteError } = await supabase
-          .from("sublotes")
-          .select("*, lote: id_lote (*, material: id_material (nombre_material), cliente: id_cliente (nombre_cliente))")
-          .eq("id_sublote", idNum)
-          .single();
-
-        if (subloteError) {
-          Alert.alert("Error", "No se pudieron obtener los sublotes");
-          return;
-        }
-
-        if (subloteData) {
-          setSublote(subloteData);
-          setMaterial(subloteData.lote?.material?.nombre_material || "Desconocido");
-          setCliente(subloteData.lote?.cliente?.nombre_cliente || "Desconocido");
-          setNombreLote(subloteData.lote?.nombre_lote || "Desconocido");
-        }
-
-        const { data: procData, error: procError } = await supabase
-          .from("procesos")
-          .select("*, cliente: id_cliente (nombre_cliente)")
-          .eq("id_sublote", idNum)
-          .order("fecha_proceso", { ascending: true });
-
-        if (procError) {
-          Alert.alert("Error", "No se pudieron obtener los procesos del sublote");
-          return;
-        }
-
-        setProcesos(procData || []);
-
-        if (procData && procData.length > 0) {
-          const lastProceso = procData[procData.length - 1];
-          setPesoFinal(lastProceso.peso_salida_kg);
-        }
-
-        const { data: fotosData, error: fotosError } = await supabase
-          .from("fotos")
-          .select("*")
-          .eq("id_sublote", idNum);
-
-        if (fotosError) {
-          Alert.alert("Error", "No se pudieron obtener las fotos del sublote");
-          return;
-        }
-
-        setFotos(fotosData || []);
-      } catch (error) {
-        Alert.alert("Error", "Favor de intentar mas tarde");
-      } finally {
-        setLoading(false);
       }
-    }
 
-    if (id) {
-      fetchData();
-    }
-  }, [id]);
+      if (id) {
+        fetchData();
+      }
+    }, [id])
+  );
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -217,6 +219,73 @@ export default function SubloteInformation() {
 
   const showButtons = sublote.estado_actual !== "Finalizado";
 
+  const deleteSublote = async () => {
+    Alert.alert(
+      "Confirmar eliminación",
+      "¿Seguro que deseas eliminar este sublote y toda su información relacionada?",
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Eliminar",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              setLoading(true);
+
+              const { error: fotosError } = await supabase
+                .from("fotos")
+                .delete()
+                .eq("id_sublote", id);
+
+              if (fotosError) {
+                Alert.alert("Error", "No se pudieron borrar las fotos del sublote");
+                return;
+              }
+
+              const { error: procesosError } = await supabase
+                .from("procesos")
+                .delete()
+                .eq("id_sublote", id);
+
+              if (procesosError) {
+                Alert.alert("Error", "No se pudieron borrar los procesos del sublote");
+                return;
+              }
+
+              const { error: invError } = await supabase
+                .from("inventario_movimientos")
+                .delete()
+                .eq("id_sublote", id);
+
+              if (invError) {
+                Alert.alert("Error", "No se pudieron borrar los movimientos de inventario del lote");
+                return;
+              }
+
+              const { error: sublotesError } = await supabase
+                .from("sublotes")
+                .delete()
+                .eq("id_sublote", id);
+
+              if (sublotesError) {
+                Alert.alert("Error", "No se pudo borrar el sublote");
+                return;
+              }
+
+              Alert.alert("Éxito", "El sublote y toda su información fueron eliminados correctamente.");
+
+              router.back();
+            } catch (error: any) {
+              Alert.alert("Error", "No se pudo eliminar el sublote. Intenta nuevamente.");
+            } finally {
+              setLoading(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   return (
     <SafeAreaView className="bg-green-600 flex-1">
       <View className="flex-row items-center px-5 pb-3 bg-green-600">
@@ -226,6 +295,7 @@ export default function SubloteInformation() {
         <Text className="text-2xl text-white font-ibm-condensed-bold ml-3 flex-1">
           {sublote.nombre_sublote}
         </Text>
+        <MaterialCommunityIcons name="delete-forever-outline" size={40} color="red" onPress={deleteSublote} />
       </View>
 
       <ScrollView

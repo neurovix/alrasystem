@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabase";
 import { Ionicons } from "@expo/vector-icons";
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import {
@@ -49,7 +50,7 @@ export default function LoteInformation() {
           .select("*, cliente: id_cliente (nombre_cliente)")
           .eq("id_lote", id)
           .order("fecha_proceso", { ascending: true });
-        
+
         if (procError) {
           Alert.alert("Error", "No se pudieron obtener los procesos del lote");
           return;
@@ -116,6 +117,83 @@ export default function LoteInformation() {
     Peletizado: "Peletizado",
     Retorno: "Retorno a Planta",
     Venta: "Venta",
+  };
+
+  const deleteLote = async () => {
+    Alert.alert(
+      "Confirmar eliminación",
+      "¿Seguro que deseas eliminar este lote y toda su información relacionada?",
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Eliminar",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              setLoading(true);
+
+              const { error: fotosError } = await supabase
+                .from("fotos")
+                .delete()
+                .eq("id_lote", id);
+
+              if (fotosError) {
+                Alert.alert("Error", "No se pudieron borrar las fotos del lote");
+                return;
+              }
+
+              const { error: procesosError } = await supabase
+                .from("procesos")
+                .delete()
+                .eq("id_lote", id);
+
+              if (procesosError) {
+                Alert.alert("Error", "No se pudieron borrar los procesos del lote");
+                return;
+              }
+
+              const { error: sublotesError } = await supabase
+                .from("sublotes")
+                .delete()
+                .eq("id_lote", id);
+
+              if (sublotesError) {
+                Alert.alert("Error", "No se pudieron borrar los sublotes del lote");
+                return;
+              }
+
+              const { error: invError } = await supabase
+                .from("inventario_movimientos")
+                .delete()
+                .eq("id_lote", id);
+
+              if (invError) {
+                Alert.alert("Error", "No se pudieron borrar los movimientos de inventario del lote");
+                return;
+              }
+
+              const { error: loteError } = await supabase
+                .from("lotes")
+                .delete()
+                .eq("id_lote", id);
+
+              if (loteError) {
+                Alert.alert("Error", "No se pudo borrar el lote")
+                return;
+              }
+
+              Alert.alert("Éxito", "El lote y toda su información fueron eliminados correctamente.");
+
+              router.back();
+            } catch (error: any) {
+              Alert.alert("Error", "No se pudo eliminar el lote. Intenta nuevamente.");
+            } finally {
+              setLoading(false);
+            }
+          },
+        },
+      ]
+    );
   };
 
   const getStepData = (proceso: any, lote: any, cliente: string) => {
@@ -264,6 +342,7 @@ export default function LoteInformation() {
         <Text className="text-2xl text-white font-ibm-condensed-bold ml-3 flex-1">
           {lote.nombre_lote}
         </Text>
+        <MaterialCommunityIcons name="delete-forever-outline" size={40} color="red" onPress={deleteLote} />
       </View>
 
       <ScrollView
@@ -365,7 +444,7 @@ export default function LoteInformation() {
         )}
 
         {hasSublotes && (
-          <View className="mb-6">
+          <View className="mb-4">
             <Text className="font-ibm-condensed-bold text-2xl text-gray-700 mb-4 flex-row items-center">
               <Ionicons name="layers-outline" size={24} color="#22c55e" className="mr-2" />
               Sublotes ({sublotes.length})
@@ -377,6 +456,10 @@ export default function LoteInformation() {
             </View>
           </View>
         )}
+
+        <TouchableOpacity className="w-full bg-green-500 mb-2 flex items-center justify-center py-3 rounded-lg" onPress={() => router.navigate(`/screens/sublotes/new/${id}`)}>
+          <Text className="text-white text-xl font-ibm-condensed-bold">Agregar sublote</Text>
+        </TouchableOpacity>
 
         <View className="bg-green-600 rounded-2xl p-6 mt-2 shadow-lg">
           <View className="flex-row items-center mb-4">

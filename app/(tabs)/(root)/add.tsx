@@ -6,7 +6,7 @@ import CheckBox from "expo-checkbox";
 import * as FileSystem from 'expo-file-system/legacy';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { router, useFocusEffect } from "expo-router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -35,33 +35,9 @@ export default function Add() {
   const [showCamera, setShowCamera] = useState(false);
   const [checkedVenta, setCheckedVenta] = useState<boolean>(false);
   const [checkedMaquila, setCheckedMaquila] = useState<boolean>(false);
-  const [checkedSublote, setCheckedSublote] = useState<boolean>(false);
   const [userId, setUserId] = useState<any>(null);
   const [photos, setPhotos] = useState<(string | null)[]>(Array(4).fill(null));
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
-  const [numeroDeSublotes, setNumeroDeSublotes] = useState<string>("");
-  const [checkedPesosDiferentes, setCheckedPesosDiferentes] = useState<boolean>(false);
-  const [checkedPesosIguales, setCheckedPesosIguales] = useState<boolean>(false);
-  const [sublotes, setSublotes] = useState([{}]);
-
-  useEffect(() => {
-    const num = parseInt(numeroDeSublotes);
-    if (checkedPesosDiferentes && num > 0) {
-      const nuevos = Array.from({ length: num }, (_, i) => ({
-        numero: i + 1,
-        peso: "",
-      }));
-      setSublotes(nuevos);
-    } else {
-      setSublotes([]);
-    }
-  }, [numeroDeSublotes, checkedPesosDiferentes]);
-
-  const handlePesoChange = (index: any, value: any) => {
-    const nuevos = [...sublotes];
-    nuevos[index].peso = value;
-    setSublotes(nuevos);
-  };
 
   const takePicture = async () => {
     if (cameraRef.current && activeIndex !== null) {
@@ -81,18 +57,6 @@ export default function Add() {
 
   const toggleVenta = () => setCheckedVenta(!checkedVenta);
   const toggleMaquila = () => setCheckedMaquila(!checkedMaquila);
-
-  const toggleSublote = () => setCheckedSublote(!checkedSublote);
-
-  const togglePesosDiferentes = () => {
-    setCheckedPesosDiferentes(!checkedPesosDiferentes);
-    setCheckedPesosIguales(false);
-  };
-
-  const togglePesosIguales = () => {
-    setCheckedPesosIguales(!checkedPesosIguales);
-    setCheckedPesosDiferentes(false);
-  };
 
   useFocusEffect(
     useCallback(() => {
@@ -147,8 +111,6 @@ export default function Add() {
       setCheckedMaquila(false);
       setPhotos(Array(6).fill(null));
       setActiveIndex(null);
-      setCheckedSublote(false);
-      setNumeroDeSublotes("0");
 
       const { data: lotesData, error: lotesError } = await supabase
         .from("lotes")
@@ -190,14 +152,8 @@ export default function Add() {
       }
 
       setLoading(true);
+
       const pesoNumerico = parseFloat(peso);
-
-      if (checkedSublote && (!numeroDeSublotes || isNaN(parseInt(numeroDeSublotes)) || parseInt(numeroDeSublotes) <= 0)) {
-        Alert.alert("Error", "Por favor ingresa un número de sublotes válido");
-        return;
-      }
-
-      const numeroSublotes = parseInt(numeroDeSublotes) || null;
 
       const { error: insertError } = await supabase.from("lotes").insert({
         id_lote: lastLoteId,
@@ -210,57 +166,13 @@ export default function Add() {
         estado_actual: "Recibido",
         peso_final_kg: null,
         created_by: userId,
-        numero_de_sublotes: checkedSublote ? numeroSublotes : 0,
+        numero_de_sublotes: 0,
       });
 
       if (insertError) {
         Alert.alert("Error", "No se pudo guardar el lote: " + insertError.message);
         return;
       }
-
-      if (checkedSublote) {
-        const numSublotes = parseInt(numeroDeSublotes);
-        const pesoNumerico = parseFloat(peso);
-
-        if (!numSublotes || numSublotes <= 0) {
-          Alert.alert("Error", "Número de sublotes inválido");
-          return;
-        }
-
-        let sublotesAInsertar: any[] = [];
-
-        if (checkedPesosDiferentes) {
-          sublotesAInsertar = sublotes.map((sub) => ({
-            id_lote: lastLoteId,
-            nombre_sublote: `SL-${sub.numero}`,
-            peso_sublote_kg: parseFloat(sub.peso) || 0,
-            fecha_creado: new Date().toISOString(),
-            estado_actual: "Recibido",
-            created_by: userId,
-          }));
-        } else if (checkedPesosIguales) {
-          const pesoPorSublote = pesoNumerico / numSublotes;
-
-          sublotesAInsertar = Array.from({ length: numSublotes }, (_, i) => ({
-            id_lote: lastLoteId,
-            nombre_sublote: `SL-${i + 1}`,
-            peso_sublote_kg: pesoPorSublote,
-            fecha_creado: new Date().toISOString(),
-            estado_actual: "Recibido",
-            created_by: userId,
-          }));
-        }
-
-        const { error: sublotesError } = await supabase
-          .from("sublotes")
-          .insert(sublotesAInsertar);
-
-        if (sublotesError) {
-          Alert.alert("Error", "No se pudieron guardar los sublotes");
-          return;
-        }
-      }
-
 
       const { data: procesoData, error: procesoError } = await supabase
         .from("procesos")
@@ -503,88 +415,7 @@ export default function Add() {
               onChangeText={setPeso}
             />
           </View>
-          <View className="flex flex-row w-full mb-4">
-            <TouchableOpacity
-              onPress={toggleSublote}
-              className="flex flex-row justify-center items-center"
-              activeOpacity={0.7}
-            >
-              <Text
-                className={
-                  checkedSublote
-                    ? `ml-2 rounded-lg py-3 w-full text-center bg-green-800 text-white text-xl font-ibm-condensed-regular`
-                    : `ml-2 rounded-lg py-3 w-full text-center bg-green-600 text-white text-xl font-ibm-condensed-regular`
-                }
-              >
-                Sublotes
-              </Text>
-            </TouchableOpacity>
-          </View>
-          {checkedSublote ? (
-            <>
-              <Text className="mt-3 pb-1 text-2xl font-ibm-devanagari-bold">
-                Número de sublotes
-              </Text>
-              <View className="flex flex-row w-full pb-5">
-                <TextInput
-                  className="border-2 w-full py-4 px-2 border-black rounded-lg"
-                  placeholder="Ingresa el número de sublotes"
-                  keyboardType="numeric"
-                  value={numeroDeSublotes}
-                  onChangeText={setNumeroDeSublotes}
-                />
-              </View>
 
-              <View className="flex flex-row w-full mb-5">
-                <TouchableOpacity
-                  onPress={togglePesosDiferentes}
-                  className="flex flex-row justify-center w-1/2 items-center"
-                  activeOpacity={0.7}
-                >
-                  <CheckBox
-                    value={checkedPesosDiferentes}
-                    onValueChange={setCheckedPesosDiferentes}
-                  />
-                  <Text className="ml-2 text-xl font-ibm-condensed-regular">
-                    Pesos diferentes
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  onPress={togglePesosIguales}
-                  className="flex flex-row justify-center w-1/2 items-center"
-                  activeOpacity={0.7}
-                >
-                  <CheckBox
-                    value={checkedPesosIguales}
-                    onValueChange={setCheckedPesosIguales}
-                  />
-                  <Text className="ml-2 text-xl font-ibm-condensed-regular">
-                    Pesos iguales
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </>
-          ) : null}
-
-          {checkedPesosDiferentes && sublotes.length > 0 && (
-            <>
-              {sublotes.map((sub, index) => (
-                <View key={index} className="mb-4">
-                  <Text className="text-2xl font-ibm-devanagari-bold">
-                    Ingresa el peso del sublote #{sub.numero}
-                  </Text>
-                  <TextInput
-                    className="border-2 w-full py-4 px-2 border-black rounded-lg"
-                    placeholder={`Peso del sublote #${sub.numero}`}
-                    keyboardType="numeric"
-                    value={sub.peso}
-                    onChangeText={(text) => handlePesoChange(index, text)}
-                  />
-                </View>
-              ))}
-            </>
-          )}
           <Text className="text-2xl font-ibm-devanagari-bold">
             Cliente
           </Text>

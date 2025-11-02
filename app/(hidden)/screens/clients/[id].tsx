@@ -1,8 +1,8 @@
 import LoteBox from '@/components/ui/LoteBox';
 import { supabase } from '@/lib/supabase';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { router, useLocalSearchParams } from "expo-router";
-import { useEffect, useState } from 'react';
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
+import { useCallback, useState } from 'react';
 import {
   Alert,
   ScrollView,
@@ -19,47 +19,48 @@ export default function ClientInformation() {
   const [clientCompany, setClientCompany] = useState<string>("");
   const [loteData, setLoteData] = useState<any[]>([]);
 
-  useEffect(() => {
-    const fetchClientInfo = async () => {
-      const { data: clientData, error: clientError } = await supabase
-        .from("clientes")
-        .select("nombre_cliente, empresa")
-        .eq("id_cliente", id)
-        .single();
+  useFocusEffect(
+    useCallback(() => {
+      const fetchClientInfo = async () => {
+        const { data: clientData, error: clientError } = await supabase
+          .from("clientes")
+          .select("nombre_cliente, empresa")
+          .eq("id_cliente", id)
+          .single();
 
-      if (clientError) {
-        Alert.alert("Error", "No se pudo obtener la informacion del cliente, intente de nuevo mas tarde");
-        return;
-      }
+        if (clientError) {
+          Alert.alert("Error", "No se pudo obtener la informacion del cliente, intente de nuevo mas tarde");
+          return;
+        }
 
-      if (clientData) {
-        setClientName(clientData.nombre_cliente);
-        setClientCompany(clientData.empresa);
-      }
+        if (clientData) {
+          setClientName(clientData.nombre_cliente);
+          setClientCompany(clientData.empresa);
+        }
 
-      const { data: lotesData, error: lotesError } = await supabase
-        .from("lotes")
-        .select("id_lote, nombre_lote, estado_actual")
-        .eq("id_cliente", id);
+        const { data: lotesData, error: lotesError } = await supabase
+          .from("lotes")
+          .select("id_lote, nombre_lote, estado_actual")
+          .eq("id_cliente", id);
 
-      if (lotesError) {
-        Alert.alert("Error", "No se pudieron obtener los lotes asignados al cliente");
-        return;
-      }
+        if (lotesError) {
+          Alert.alert("Error", "No se pudieron obtener los lotes asignados al cliente");
+          return;
+        }
 
-      if (lotesData && lotesData.length > 0) {
-        const lotes = lotesData.map(item => ({
-          id: item.id_lote,
-          name: item.nombre_lote,
-          status: ["Recibido", "Molienda", "Peletizado", "Retorno"].includes(item.estado_actual) ? "En proceso" : "Finalizado",
-          etapa: item.estado_actual,
-        }));
-        setLoteData(lotes);
-      }
-    };
+        if (lotesData && lotesData.length > 0) {
+          const lotes = lotesData.map(item => ({
+            id: item.id_lote,
+            name: item.nombre_lote,
+            status: ["Recibido", "Molienda", "Peletizado", "Retorno"].includes(item.estado_actual) ? "En proceso" : "Finalizado",
+            etapa: item.estado_actual,
+          }));
+          setLoteData(lotes);
+        }
+      };
 
-    fetchClientInfo();
-  }, [id]);
+      fetchClientInfo();
+    }, [id]));
 
 
   return (

@@ -206,13 +206,16 @@ export default function Home() {
     <SafeAreaView className="bg-green-600 flex-1">
       <View className="flex flex-row items-center w-full">
         <Text className="text-3xl w-5/6 p-5 text-white font-ibm-condensed-bold">
-          Información general
+          Inicio
         </Text>
         <TouchableOpacity className="w-1/6 text-center" onPress={() => setShowScanner(true)}>
           <AntDesign name="scan" size={30} color="white" />
         </TouchableOpacity>
       </View>
       <ScrollView className="bg-white px-5 pt-2" contentContainerStyle={{ paddingBottom: 170 }}>
+        <View className="my-5">
+          <Text className="font-ibm-devanagari-bold text-2xl">Informacion mensual</Text>
+        </View>
         <View className="w-full flex flex-row pt-3">
           <View className="w-5/12 items-center justify-center">
             <Svg height="150" width="150">
