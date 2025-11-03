@@ -76,13 +76,12 @@ export default function Peletizado() {
             .eq("id_lote", selectedLote.id_lote);
 
           if (tieneSublotes && selectedSublote?.id_sublote) {
-            query = query.eq("id_sublote", selectedSublote.id_sublote);
+            query = query.eq("id_sublote", selectedSublote?.id_sublote);
           }
 
           const { data: processData, error: processError } = await query.maybeSingle();
 
           if (processError) {
-            Alert.alert("Error", "No se pudo obtener el peso de molienda");
             setPesoMolienda(0);
           } else {
             setPesoMolienda(processData?.peso_salida_kg || 0);

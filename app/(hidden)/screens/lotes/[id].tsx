@@ -505,6 +505,20 @@ export default function LoteInformation() {
                     />
                   </>
                 )}
+                {lote.estado_actual === "Peletizado" && (
+                  <>
+                    <ActionButton
+                      title={lote.tipo_proceso === "Maquila" ? "Maquila" : "Venta"}
+                      onPress={() =>
+                        router.push(
+                          lote.tipo_proceso === "Maquila"
+                            ? `/screens/retorno?id_lote=${id}`
+                            : `/screens/venta?id_lote=${id}`
+                        )
+                      }
+                    />
+                  </>
+                )}
               </View>
             )}
           </>
