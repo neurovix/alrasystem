@@ -1,5 +1,6 @@
 import LoteBox from '@/components/ui/LoteBox';
 import { supabase } from '@/lib/supabase';
+import { AntDesign } from '@expo/vector-icons';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useState } from 'react';
@@ -62,16 +63,37 @@ export default function ClientInformation() {
       fetchClientInfo();
     }, [id]));
 
+  const handleN8N = async () => {
+    Alert.alert(
+      "Reporte",
+      `¿Deseas obtener un reporte de ${clientCompany}?`,
+      [
+        { text: "Cancelar", style: "destructive" },
+        {
+          text: "Confirmar",
+          style: "default",
+          onPress: async () => {
+            
+          }
+        }
+      ]
+    );
+  };
 
   return (
     <SafeAreaView className="bg-green-600 flex-1">
-      <View className="flex flex-row items-center px-3">
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="chevron-back" size={40} color="white" />
-        </TouchableOpacity>
-        <Text className="text-3xl bg-green-600 py-5 text-white font-ibm-condensed-bold px-5">
-          Información cliente
-        </Text>
+      <View className="flex flex-row items-center justify-between px-3">
+        <View className='flex flex-row items-center'>
+          <TouchableOpacity onPress={() => router.back()}>
+            <Ionicons name="chevron-back" size={40} color="white" />
+          </TouchableOpacity>
+          <Text className="text-3xl bg-green-600 py-5 text-white font-ibm-condensed-bold px-5">
+            Información cliente
+          </Text>
+        </View>
+        <View className='flex items-center pr-5'>
+          <AntDesign name="file-pdf" size={30} color="black" onPress={handleN8N} />
+        </View>
       </View>
       <ScrollView
         className="bg-white px-5 pt-5"

@@ -90,7 +90,11 @@ export default function Add() {
           setClientes(clientesData || []);
 
           const { data, error } = await supabase.auth.getUser();
-          if (error) throw error;
+          
+          if (error) {
+            Alert.alert("Error", "No se pudo obtener la informacion del usuario");
+            return;
+          }
 
           setUserId(data.user.id);
         } catch (err) {
@@ -559,7 +563,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   picker: {
-    height: 50,
+    height: 60,
   },
   pickerIOS: {
     height: 200,

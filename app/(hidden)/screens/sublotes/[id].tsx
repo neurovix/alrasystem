@@ -23,6 +23,7 @@ export default function SubloteInformation() {
   const [nombreLote, setNombreLote] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(true);
   const [pesoFinal, setPesoFinal] = useState<number | null>(null);
+  const [idLote, setIdLote] = useState<number>(0);
 
   useFocusEffect(
     useCallback(() => {
@@ -53,6 +54,7 @@ export default function SubloteInformation() {
             setMaterial(subloteData.lote?.material?.nombre_material || "Desconocido");
             setCliente(subloteData.lote?.cliente?.nombre_cliente || "Desconocido");
             setNombreLote(subloteData.lote?.nombre_lote || "Desconocido");
+            setIdLote(subloteData.id_lote);
           }
 
           const { data: procData, error: procError } = await supabase
@@ -293,7 +295,7 @@ export default function SubloteInformation() {
           <Ionicons name="chevron-back" size={28} color="white" />
         </TouchableOpacity>
         <Text className="text-2xl text-white font-ibm-condensed-bold ml-3 flex-1">
-          {sublote.nombre_sublote}
+          LT-{idLote}/{sublote.nombre_sublote}
         </Text>
         <MaterialCommunityIcons name="delete-forever-outline" size={40} color="red" onPress={deleteSublote} />
       </View>

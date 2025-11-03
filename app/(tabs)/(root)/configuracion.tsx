@@ -213,7 +213,7 @@ export default function Configuracion() {
           <View className="mt-8 items-center">
             <Text className="text-gray-400 text-sm">Versión 1.0.0</Text>
             <Text className="text-gray-400 text-xs mt-1">
-              © {new Date().getFullYear()} Aplicación creada por Neurovix
+              © {new Date().getFullYear()} Aplicación creada por Neurovix S. de R.L. de C.V.
             </Text>
           </View>
         </View>

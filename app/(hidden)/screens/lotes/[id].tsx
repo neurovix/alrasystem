@@ -1,14 +1,18 @@
 import { supabase } from "@/lib/supabase";
-import { Ionicons } from "@expo/vector-icons";
+import { Feather, Ionicons } from "@expo/vector-icons";
 import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import { router, useLocalSearchParams } from "expo-router";
-import { useEffect, useState } from "react";
+import { Picker } from "@react-native-picker/picker";
+import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
+import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
   Image,
+  Modal,
+  Platform,
   ScrollView,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -23,74 +27,129 @@ export default function LoteInformation() {
   const [cliente, setCliente] = useState<string>("");
   const [sublotes, setSublotes] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [clientesList, setClientesList] = useState<any[]>([]);
+  const [materialesList, setMaterialesList] = useState<any[]>([]);
+  const [selectedCliente, setSelectedCliente] = useState<any>(null);
+  const [selectedMaterial, setSelectedMaterial] = useState<any>(null);
+  const [pesoEntrada, setPesoEntrada] = useState<string>("");
 
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        setLoading(true);
+  useFocusEffect(
+    useCallback(() => {
+      async function fetchData() {
+        try {
+          setLoading(true);
 
-        const { data: loteData, error: loteError } = await supabase
-          .from("lotes")
-          .select("*, material: id_material (nombre_material), cliente: id_cliente (nombre_cliente)")
-          .eq("id_lote", id)
-          .single();
-        if (loteError) {
-          Alert.alert("Error", "No se pudo obtener la informacion del lote");
-          return;
+          const { data: loteData, error: loteError } = await supabase
+            .from("lotes")
+            .select("*, material: id_material (nombre_material), cliente: id_cliente (nombre_cliente)")
+            .eq("id_lote", id)
+            .single();
+          if (loteError) {
+            Alert.alert("Error", "No se pudo obtener la informacion del lote");
+            return;
+          }
+
+          if (loteData) {
+            setLote(loteData);
+            setMaterial(loteData.material?.nombre_material || "Desconocido");
+            setCliente(loteData.cliente?.nombre_cliente || "Desconocido");
+          }
+
+          const { data: clientes, error: clienteErr } = await supabase
+            .from("clientes")
+            .select("id_cliente, nombre_cliente");
+          if (!clienteErr) setClientesList(clientes);
+
+          const { data: mats, error: matErr } = await supabase
+            .from("materiales")
+            .select("id_material, nombre_material");
+          if (!matErr) setMaterialesList(mats);
+
+          const { data: procData, error: procError } = await supabase
+            .from("procesos")
+            .select("*, cliente: id_cliente (nombre_cliente)")
+            .eq("id_lote", id)
+            .order("fecha_proceso", { ascending: true });
+
+          if (procError) {
+            Alert.alert("Error", "No se pudieron obtener los procesos del lote");
+            return;
+          }
+
+          setProcesos(procData || []);
+
+          const { data: fotosData, error: fotosError } = await supabase
+            .from("fotos")
+            .select("*")
+            .eq("id_lote", id);
+
+          if (fotosError) {
+            Alert.alert("Error", "No se pudieron obtener las fotos")
+            return;
+          }
+
+          setFotos(fotosData || []);
+
+          const { data: sublotesData, error: subError } = await supabase
+            .from("sublotes")
+            .select("id_sublote, nombre_sublote, peso_sublote_kg, estado_actual, fecha_creado")
+            .eq("id_lote", id)
+            .order("nombre_sublote", { ascending: true });
+
+          if (subError) {
+            Alert.alert("Error", "No se pudieron obtener los sublotes");
+            return;
+          }
+
+          setSublotes(sublotesData || []);
+        } catch (error) {
+          Alert.alert("Error", "Hubo algun problema, favor de intentar mas tarde");
+        } finally {
+          setLoading(false);
         }
-
-        if (loteData) {
-          setLote(loteData);
-          setMaterial(loteData.material?.nombre_material || "Desconocido");
-          setCliente(loteData.cliente?.nombre_cliente || "Desconocido");
-        }
-
-        const { data: procData, error: procError } = await supabase
-          .from("procesos")
-          .select("*, cliente: id_cliente (nombre_cliente)")
-          .eq("id_lote", id)
-          .order("fecha_proceso", { ascending: true });
-
-        if (procError) {
-          Alert.alert("Error", "No se pudieron obtener los procesos del lote");
-          return;
-        }
-
-        setProcesos(procData || []);
-
-        const { data: fotosData, error: fotosError } = await supabase
-          .from("fotos")
-          .select("*")
-          .eq("id_lote", id);
-
-        if (fotosError) {
-          Alert.alert("Error", "No se pudieron obtener las fotos")
-          return;
-        }
-
-        setFotos(fotosData || []);
-
-        const { data: sublotesData, error: subError } = await supabase
-          .from("sublotes")
-          .select("id_sublote, nombre_sublote, peso_sublote_kg, estado_actual, fecha_creado")
-          .eq("id_lote", id)
-          .order("id_sublote", { ascending: true });
-
-        if (subError) {
-          Alert.alert("Error", "No se pudieron obtener los sublotes");
-          return;
-        }
-
-        setSublotes(sublotesData || []);
-      } catch (error) {
-        Alert.alert("Error", "Hubo algun problema, favor de intentar mas tarde");
-      } finally {
-        setLoading(false);
       }
-    }
 
-    fetchData();
-  }, [id]);
+      fetchData();
+    }, [id])
+  );
+
+  const handleSaveEdit = async () => {
+    try {
+      if (!selectedCliente || !selectedMaterial || !pesoEntrada) {
+        Alert.alert("Campos incompletos", "Por favor llena todos los campos.");
+        return;
+      }
+
+      const { error } = await supabase
+        .from("lotes")
+        .update({
+          id_cliente: selectedCliente,
+          id_material: selectedMaterial,
+          peso_entrada_kg: parseFloat(pesoEntrada),
+        })
+        .eq("id_lote", id);
+
+      if (error) {
+        Alert.alert("Error", "No se pudo actualizar el lote.");
+        return;
+      }
+
+      Alert.alert("Éxito", "Lote actualizado correctamente.");
+      setEditModalVisible(false);
+
+      const { data: loteData } = await supabase
+        .from("lotes")
+        .select("*, material: id_material (nombre_material), cliente: id_cliente (nombre_cliente)")
+        .eq("id_lote", id)
+        .single();
+      setLote(loteData);
+      setMaterial(loteData.material?.nombre_material);
+      setCliente(loteData.cliente?.nombre_cliente);
+    } catch (err) {
+      Alert.alert("Error", "Ocurrió un problema al guardar los cambios.");
+    }
+  };
 
   const handleN8N = async () => {
     const _ = await fetch(`https://n8n.srv1034345.hstgr.cloud/webhook/49909213-02c1-4faa-81ef-6d162d22ea15?id_lote=${id}`, {
@@ -351,11 +410,19 @@ export default function LoteInformation() {
         showsVerticalScrollIndicator={false}
       >
         <View className="bg-white rounded-2xl p-6 mb-6 shadow-lg border border-green-100">
-          <View className="flex-row items-center mb-4">
-            <Ionicons name="information-circle-outline" size={24} color="#22c55e" />
-            <Text className="font-ibm-condensed-bold text-2xl text-gray-800 ml-2">
-              Detalles Generales
-            </Text>
+          <View className="flex-row w-full items-center justify-between mb-4">
+            <View className="flex flex-row items-center">
+              <Ionicons name="information-circle-outline" size={24} color="#22c55e" />
+              <Text className="font-ibm-condensed-bold text-2xl text-gray-800 ml-2">Detalles Generales</Text>
+            </View>
+            <TouchableOpacity onPress={() => {
+              setSelectedCliente(lote.id_cliente);
+              setSelectedMaterial(lote.id_material);
+              setPesoEntrada(String(lote.peso_entrada_kg || ""));
+              setEditModalVisible(true);
+            }}>
+              <Feather name="edit" size={24} color="black" />
+            </TouchableOpacity>
           </View>
           <View className="space-y-3">
             <View className="flex-row items-center">
@@ -488,6 +555,72 @@ export default function LoteInformation() {
         <TouchableOpacity onPress={handleN8N} className="bg-green-600 w-full rounded-2xl py-5 mt-5">
           <Text className="font-ibm-condensed-bold text-white text-center">OBTENER REPORTE</Text>
         </TouchableOpacity>
+
+        <Modal
+          animationType="slide"
+          visible={editModalVisible}
+          transparent
+          onRequestClose={() => setEditModalVisible(false)}
+        >
+          <View className="flex-1 bg-black/50 justify-center items-center px-5">
+            <View className="bg-white w-full rounded-2xl p-6">
+              <Text className="text-2xl font-ibm-condensed-bold mb-4 text-center">Editar Lote</Text>
+
+              <Text className="text-gray-700 font-semibold mb-1">Cliente</Text>
+              <View className="border border-gray-300 rounded-lg mb-4">
+                <Picker
+                  selectedValue={selectedCliente}
+                  onValueChange={(val) => setSelectedCliente(val)}
+                  style={{ height: Platform.OS === "ios" ? 200 : 60 }}
+                >
+                  <Picker.Item label="Selecciona un cliente" value={null} />
+                  {clientesList.map((c) => (
+                    <Picker.Item key={c.id_cliente} label={c.nombre_cliente} value={c.id_cliente} />
+                  ))}
+                </Picker>
+
+              </View>
+
+              <Text className="text-gray-700 font-semibold mb-1">Material</Text>
+              <View className="border border-gray-300 rounded-lg mb-4">
+                <Picker
+                  selectedValue={selectedMaterial}
+                  onValueChange={(val) => setSelectedMaterial(val)}
+                  style={{ height: Platform.OS === "ios" ? 180 : 50 }}
+                >
+                  <Picker.Item label="Selecciona un material" value={null} />
+                  {materialesList.map((m) => (
+                    <Picker.Item key={m.id_material} label={m.nombre_material} value={m.id_material} />
+                  ))}
+                </Picker>
+              </View>
+
+              <Text className="text-gray-700 font-semibold mb-1">Peso de Entrada (kg)</Text>
+              <TextInput
+                value={pesoEntrada}
+                onChangeText={setPesoEntrada}
+                keyboardType="numeric"
+                className="border border-gray-300 rounded-lg px-3 py-2 mb-5"
+              />
+
+              <View className="flex-row justify-between">
+                <TouchableOpacity
+                  onPress={() => setEditModalVisible(false)}
+                  className="bg-gray-300 rounded-xl flex-1 py-3 mr-2"
+                >
+                  <Text className="text-center font-bold text-gray-700">Cancelar</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={handleSaveEdit}
+                  className="bg-green-600 rounded-xl flex-1 py-3 ml-2"
+                >
+                  <Text className="text-center font-bold text-white">Guardar</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
       </ScrollView>
     </SafeAreaView>
   );
