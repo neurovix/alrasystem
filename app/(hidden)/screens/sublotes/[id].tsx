@@ -139,6 +139,11 @@ export default function SubloteInformation() {
           { label: "Fecha de Proceso", value: formatDate(proceso.fecha_proceso) },
         ];
       case "Retorno":
+        return [
+          { label: "Peso Final", value: `${formatNumber(proceso.peso_salida_kg)} kg` },
+          { label: "Fecha", value: formatDate(proceso.fecha_proceso) },
+          { label: "Cliente", value: procCliente },
+        ];
       case "Venta":
         return [
           { label: "Peso Final", value: `${formatNumber(proceso.peso_salida_kg)} kg` },
@@ -394,6 +399,18 @@ export default function SubloteInformation() {
                   }
                 />
               </>
+            )}
+            {sublote.estado_actual === "Peletizado" && (
+              <ActionButton
+                title={sublote.lote?.tipo_proceso === "Maquila" ? "Maquila" : "Venta"}
+                onPress={() =>
+                  router.push(
+                    sublote.lote?.tipo_proceso === "Maquila"
+                      ? `/screens/retorno?id_lote=${sublote.id_lote}&id_sublote=${id}`
+                      : `/screens/venta?id_lote=${sublote.id_lote}&id_sublote=${id}`
+                  )
+                }
+              />
             )}
           </View>
         )}

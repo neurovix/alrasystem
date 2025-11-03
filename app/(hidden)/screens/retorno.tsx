@@ -49,8 +49,7 @@ export default function Retorno() {
         try {
           const { data: loteData, error: loteError } = await supabase
             .from("lotes")
-            .select("id_lote, nombre_lote, peso_entrada_kg, id_material, id_cliente, numero_de_sublotes")
-            .not("estado_actual", "in", "(Finalizado,Retorno,Recibido,Venta)");
+            .select("id_lote, nombre_lote, peso_entrada_kg, id_material, id_cliente, numero_de_sublotes");
 
           if (loteError) throw new Error(loteError.message);
           setLotes(loteData || []);
@@ -368,7 +367,7 @@ export default function Retorno() {
 
       Alert.alert("Éxito", "✅ Maquilado guardado correctamente");
       await reFetch();
-      router.push("/(tabs)/(root)");
+      router.back();
     } catch (err) {
       Alert.alert("Error", "Error inesperado: " + (err as Error).message);
     } finally {
@@ -517,16 +516,23 @@ export default function Retorno() {
         </View>
       ) : showCamera ? (
         <View style={{ flex: 1 }}>
-          <CameraView style={{ flex: 1 }} ref={cameraRef}>
-            <View style={styles.shutterContainer}>
-              <TouchableOpacity className="mb-5" style={styles.shutterBtn} onPress={takePicture}>
-                <View style={styles.shutterBtnInner} />
-              </TouchableOpacity>
-              <View className="mb-8">
-                <Button color={"#dc2626"} title="Cancelar" onPress={() => setShowCamera(false)} />
-              </View>
+          <CameraView style={{ flex: 1 }} ref={cameraRef} />
+          <View style={styles.shutterContainer}>
+            <TouchableOpacity
+              className="mb-5"
+              style={styles.shutterBtn}
+              onPress={takePicture}
+            >
+              <View style={styles.shutterBtnInner} />
+            </TouchableOpacity>
+            <View className="mb-8">
+              <Button
+                color={"#dc2626"}
+                title="Cancelar"
+                onPress={() => setShowCamera(false)}
+              />
             </View>
-          </CameraView>
+          </View>
         </View>
       ) : (
         <ScrollView

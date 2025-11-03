@@ -73,7 +73,9 @@ export default function ClientInformation() {
           text: "Confirmar",
           style: "default",
           onPress: async () => {
-            
+            const _ = await fetch(`https://n8n.srv1034345.hstgr.cloud/webhook/4abcacdd-484d-44c2-b169-3482aa36423b?id_cliente=${id}`, {
+              method: "POST"
+            });
           }
         }
       ]

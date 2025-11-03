@@ -60,8 +60,7 @@ export default function Molienda() {
     useCallback(() => {
       const fetchData = async () => {
         const { data: loteData } = await supabase.from("lotes")
-          .select("id_lote,nombre_lote,peso_entrada_kg,id_material,id_cliente,numero_de_sublotes")
-          .not("estado_actual", "in", "(Finalizado,Molienda,Peletizado)");
+          .select("id_lote,nombre_lote,peso_entrada_kg,id_material,id_cliente,numero_de_sublotes");
 
         setLotes(loteData || []);
 
@@ -145,7 +144,7 @@ export default function Molienda() {
       .insert({
         id_material: material,
         cantidad_kg: peso,
-        tipo_movimiento: "Traslado",
+        tipo_movimiento: "Molienda",
         fecha: new Date().toISOString(),
         id_lote: selectedLote?.id_lote,
         created_by: userId,
@@ -330,7 +329,7 @@ export default function Molienda() {
 
       Alert.alert("Éxito", "✅ Molienda guardada correctamente");
       await reFetch();
-      router.push("/(tabs)/(root)");
+      router.back();
     } catch (err) {
       Alert.alert("Error", "Error inesperado: " + (err as Error).message);
     } finally {
@@ -458,16 +457,23 @@ export default function Molienda() {
         </View>
       ) : showCamera ? (
         <View style={{ flex: 1 }}>
-          <CameraView style={{ flex: 1 }} ref={cameraRef}>
-            <View style={styles.shutterContainer}>
-              <TouchableOpacity className="mb-5" style={styles.shutterBtn} onPress={takePicture}>
-                <View style={styles.shutterBtnInner} />
-              </TouchableOpacity>
-              <View className="mb-8">
-                <Button color={"#dc2626"} title="Cancelar" onPress={() => setShowCamera(false)} />
-              </View>
+          <CameraView style={{ flex: 1 }} ref={cameraRef} />
+          <View style={styles.shutterContainer}>
+            <TouchableOpacity
+              className="mb-5"
+              style={styles.shutterBtn}
+              onPress={takePicture}
+            >
+              <View style={styles.shutterBtnInner} />
+            </TouchableOpacity>
+            <View className="mb-8">
+              <Button
+                color={"#dc2626"}
+                title="Cancelar"
+                onPress={() => setShowCamera(false)}
+              />
             </View>
-          </CameraView>
+          </View>
         </View>
       ) : (
         <ScrollView

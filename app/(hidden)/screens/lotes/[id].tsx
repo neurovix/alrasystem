@@ -524,8 +524,8 @@ export default function LoteInformation() {
           </View>
         )}
 
-        <TouchableOpacity className="w-full bg-green-500 mb-2 flex items-center justify-center py-3 rounded-lg" onPress={() => router.navigate(`/screens/sublotes/new/${id}`)}>
-          <Text className="text-white text-xl font-ibm-condensed-bold">Agregar sublote</Text>
+        <TouchableOpacity className="bg-green-600 flex items-center justify-center rounded-2xl py-4 mb-3 shadow-lg" onPress={() => router.navigate(`/screens/sublotes/new/${id}`)}>
+          <Text className="text-white text-lg font-ibm-condensed-bold">Agregar sublote</Text>
         </TouchableOpacity>
 
         <View className="bg-green-600 rounded-2xl p-6 mt-2 shadow-lg">

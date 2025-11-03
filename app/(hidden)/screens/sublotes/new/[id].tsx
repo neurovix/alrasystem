@@ -8,7 +8,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 const NewSublote = () => {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const [_, setIdSublote] = useState<number>(0);
+  const [idSublote, setIdSublote] = useState<number>(0);
   const [nombreSublote, setNombreSublote] = useState<string>("");
   const [selectedProceso, setSelectedProceso] = useState<string | any>(null);
   const [tipoProceso, setTipoProceso] = useState<string>("");
@@ -41,7 +41,7 @@ const NewSublote = () => {
           setTipoProceso(data.tipo_proceso);
 
           const { data: dataUser, error } = await supabase.auth.getUser();
-          
+
           if (error) {
             Alert.alert("Error", "No se pudo obtener la informacion del usuario");
             return;
@@ -72,6 +72,10 @@ const NewSublote = () => {
       Alert.alert("Error", "No se pudo guardar el sublote");
       return;
     }
+
+    const _ = await fetch(`https://n8n.srv1034345.hstgr.cloud/webhook/acd61cff-f5a3-470a-821c-c1e9b08ba59a?id_lote=${id}&id_sublote=${idSublote}`, {
+      method: "POST",
+    });
 
     Alert.alert("Exito", "Sublote guardado correctamente");
     router.back();

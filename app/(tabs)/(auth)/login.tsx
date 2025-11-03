@@ -22,7 +22,7 @@ export default function LogIn() {
   const router = useRouter();
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
-  const [error, setError] = useState<String | null>("");
+  const [_, setError] = useState<String | null>("");
   const [loading, setLoading] = useState(false);
   const [userData, setUserData] = useState<{ estatus: boolean }>({ estatus: false });
 

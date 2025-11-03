@@ -15,7 +15,7 @@ CREATE TYPE estado_lote AS ENUM ('Recibido', 'Molienda', 'Peletizado', 'Finaliza
 CREATE TYPE tipo_proceso AS ENUM ('Recibido', 'Molienda', 'Peletizado', 'Retorno', 'Venta');
 
 -- Tipo de movimiento de inventario
-CREATE TYPE tipo_movimiento AS ENUM ('Entrada', 'Salida', 'Ajuste', 'Traslado');
+CREATE TYPE tipo_movimiento AS ENUM ('Entrada', 'Salida', 'Ajuste', 'Traslado', 'Molienda', 'Peletizado');
 
 -- ===============================
 -- TABLAS

@@ -62,8 +62,7 @@ export default function Peletizado() {
       const fetchData = async () => {
         const { data: loteData } = await supabase
           .from("lotes")
-          .select("id_lote, nombre_lote, peso_entrada_kg, id_material, id_cliente, numero_de_sublotes")
-          .not("estado_actual", "in", "(Finalizado,Peletizado)");
+          .select("id_lote, nombre_lote, peso_entrada_kg, id_material, id_cliente, numero_de_sublotes");
 
         setLotes(loteData || []);
 
@@ -137,7 +136,7 @@ export default function Peletizado() {
       .insert({
         id_material: material,
         cantidad_kg: peso,
-        tipo_movimiento: "Traslado",
+        tipo_movimiento: "Peletizado",
         fecha: new Date().toISOString(),
         id_lote: selectedLote?.id_lote,
         created_by: userId,
@@ -312,7 +311,7 @@ export default function Peletizado() {
 
       Alert.alert("Éxito", "✅ Peletizado guardado correctamente");
       await reFetch();
-      router.push("/(tabs)/(root)");
+      router.back();
     } catch (err) {
       Alert.alert("Error", "Error inesperado: " + (err as Error).message);
     } finally {
