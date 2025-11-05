@@ -379,7 +379,7 @@ export default function Venta() {
     try {
       setPeso(0);
       setSelectedLote(null);
-      setPhotos(Array(6).fill(null));
+      setPhotos(Array(4).fill(null));
       setSelectedCliente(null);
       setMerma(0);
 

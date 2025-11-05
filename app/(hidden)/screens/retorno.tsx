@@ -379,7 +379,7 @@ export default function Retorno() {
     try {
       setPeso(0);
       setSelectedLote(null);
-      setPhotos(Array(6).fill(null));
+      setPhotos(Array(4).fill(null));
       setSelectedCliente("");
       setMerma(0);
 

@@ -341,7 +341,7 @@ export default function Molienda() {
     try {
       setPeso(0);
       setSelectedLote(null);
-      setPhotos(Array(6).fill(null));
+      setPhotos(Array(4).fill(null));
       setMerma(0);
 
       const _ = async () => {

@@ -113,7 +113,7 @@ export default function Add() {
       setPeso("");
       setCheckedVenta(false);
       setCheckedMaquila(false);
-      setPhotos(Array(6).fill(null));
+      setPhotos(Array(4).fill(null));
       setActiveIndex(null);
 
       const { data: lotesData, error: lotesError } = await supabase
