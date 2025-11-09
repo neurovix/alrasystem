@@ -12,7 +12,8 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.fernando.nrv.alra",
       "infoPlist": {
-        "NSCameraUsageDescription": "La aplicación necesita acceder a la cámara para escanear códigos QR y tomar fotos de diferentes procesos."
+        "NSCameraUsageDescription": "La aplicación necesita acceder a la cámara para escanear códigos QR y tomar fotos de diferentes procesos.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -23,7 +24,8 @@
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "permissions": [
-        "android.permission.CAMERA"
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
       ],
       "package": "com.fernando.nrv.alra"
     },
