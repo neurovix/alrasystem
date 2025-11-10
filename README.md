@@ -5,7 +5,7 @@ Permite el seguimiento completo del proceso de reciclaje — desde la **entrada 
 
 ---
 
-![Video ALRA APP](./public/video_welcome.mp4)
+[![Ver video de demostración](./public/welcome.png)](https://xzeeudfqafydqizuqorm.supabase.co/storage/v1/object/public/lotes/video_welcome.mp4)
 
 ---
 
