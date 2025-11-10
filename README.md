@@ -20,7 +20,7 @@ Permite el seguimiento completo del proceso de reciclaje — desde la **entrada 
 - Ajustes automáticos al finalizar o reabrir lotes.
 
 ### 🔹 Administración de usuarios
-- Sistema de roles con permisos: **Administrador**, **Supervisor**, **Operador**.
+- Sistema de roles con permisos: **Administrador**, **Operador**.
 - Registro, edición, suspensión y eliminación de usuarios.
 - Autenticación segura mediante **Supabase Auth (JWT)**.
 
@@ -34,12 +34,12 @@ Permite el seguimiento completo del proceso de reciclaje — desde la **entrada 
   - Lotes en proceso 🏭  
   - Lotes finalizados ✅  
   - Material procesado ♻️  
-  - Gráfico de inventario por material 📊  
+  - Gráficos para el area de inventario 📊  
 - Visualización clara para la toma de decisiones operativas.
 
 ### 🔹 Reportes automatizados
-- **Reporte de lotes:** por estado, cliente o rango de fechas.  
-- **Reporte de inventario:** entre `fecha x` y `fecha y`.  
+- **Reporte de lotes:** Al finalizar el lote o al momento que se necesite se puede generar manualmente.
+- **Reporte de inventario:** entre `fecha x` y `fecha y`.
 - **Reporte de clientes:** con totales, devoluciones y compras.  
 - Exportación de reportes a PDF y envío automático por correo.
 
@@ -53,57 +53,58 @@ Permite el seguimiento completo del proceso de reciclaje — desde la **entrada 
 | **Backend** | Supabase (Base de datos y API REST integrada) |
 | **Autenticación** | Supabase Auth (correo y contraseña) |
 | **Almacenamiento** | Supabase Storage (reportes y archivos) |
-| **Gráficas** | React Native Charts / Victory Native |
-| **QR** | Librerías `react-native-qrcode-svg` y `expo-barcode-scanner` |
-| **Notificaciones** | Expo Notifications (para alertas de procesos) |
+| **Gráficas** |  `react-native-svg` |
+| **QR** | Librerías `expo-camera` |
 
 ---
 
 ## 📱 Estructura general del proyecto
-📦 alra-recycling-app
+📦 alrasystem
 ┣ 📂 app/ # Pantallas principales (Dashboards, Lotes, Inventario)
 ┣ 📂 components/ # Componentes reutilizables (Cards, Buttons, Inputs, etc.)
-┣ 📂 services/ # Conexiones a Supabase, helpers y lógica de negocio
-┣ 📂 assets/ # Íconos, logos, imágenes
-┣ 📂 utils/ # Funciones utilitarias (formateo de fechas, colores, etc.)
+┣ 📂 lib/ # Conexiones a Supabase, helpers y lógica de negocio
+┣ 📂 assets/ # Íconos, logos, imágenes, fonts
+┣ 📂 providers/ # Supabase auth
+┣ 📂 constants/ # Iconos y fuentes
+┣ 📂 database/ # Estructura de la base de datos
 ┗ 📜 README.md
 
 ---
 
 ## 📸 Capturas de pantalla
 
+### 👥 Pantalla de bienvenida
+> Control de roles, accesos y autenticación segura con Supabase Auth.
+
+![Usuarios Screenshot](./public/screenshot_welcome.png)
+
+---
+
 ### 🏠 Dashboard principal
 > Información mensual de lotes, sublotes, inventario y rendimiento general.
 
-![Dashboard Screenshot](./screenshots/dashboard.png)
+![Dashboard Screenshot](./public/screenshot_index.png)
 
 ---
 
 ### 📦 Lotes y sublotes
-> Registro, seguimiento y escaneo mediante QR generados automáticamente.
+> Informacion completa de un lote con sublotes (incluye imagenes).
 
-![Lotes Screenshot](./screenshots/lotes.png)
-
----
-
-### 🧾 Reportes
-> Generación y descarga de reportes filtrados por rango de fechas o cliente.
-
-![Reportes Screenshot](./screenshots/reportes.png)
+![Lotes Screenshot](./public/screenshot_informacion_lote.png)
 
 ---
 
-### 👥 Administración de usuarios
-> Control de roles, accesos y autenticación segura con Supabase Auth.
+### 🧾 Busqueda
+> Busqueda de lotes en base a su nombre o id.
 
-![Usuarios Screenshot](./screenshots/usuarios.png)
+![Reportes Screenshot](./public/screenshot_busqueda.png)
 
 ---
 
 ### 🧱 Inventario
-> Visualización del inventario actual y movimientos por tipo de material.
+> Visualización del inventario actual y graficas para mejor entendimiento.
 
-![Inventario Screenshot](./screenshots/inventario.png)
+![Inventario Screenshot](./public/screenshot_inventario.png)
 
 ---
 
@@ -118,7 +119,7 @@ Permite el seguimiento completo del proceso de reciclaje — desde la **entrada 
 
 ### Requisitos previos
 - Node.js v18+
-- Expo CLI
+- Expo CLI && EAS CLI
 - Cuenta en Supabase (con proyecto configurado)
 - Dispositivo físico o emulador con **Expo Go**
 
@@ -126,8 +127,8 @@ Permite el seguimiento completo del proceso de reciclaje — desde la **entrada 
 
 ```bash
 # Clonar el repositorio
-git clone https://github.com/neurovix/alra-recycling-app.git
-cd alra-recycling-app
+git clone https://github.com/neurovix/alrasystem.git
+cd alrasystem
 
 # Instalar dependencias
 npm install
@@ -135,15 +136,14 @@ npm install
 # Configurar variables de entorno
 cp .env.example .env
 # Editar las variables con tu URL y API Key de Supabase
+🔑 Variables de entorno (.env)
+EXPO_PUBLIC_SUPABASE_URL=https://xxxxx.supabase.co
+EXPO_PUBLIC_SUPABASE_ANON_KEY=your_public_anon_key
 
 # Ejecutar la app
 npx expo start
 
 Luego escanea el código QR con Expo Go para ejecutar la aplicación en tu dispositivo.
-
-🔑 Variables de entorno (.env)
-EXPO_PUBLIC_SUPABASE_URL=https://xxxxx.supabase.co
-EXPO_PUBLIC_SUPABASE_ANON_KEY=your_public_anon_key
 
 📅 Próximas mejoras
 🌐 Panel web administrativo (integración con el backend móvil)
@@ -154,14 +154,13 @@ EXPO_PUBLIC_SUPABASE_ANON_KEY=your_public_anon_key
 
 👨‍💻 Desarrollado por
 
-Fernando Alejandro Vázquez Medina
+Fernando Alejandro Vazquez Medina
 Fullstack Developer — Fundador de Neurovix
-📧 contacto@neurovix.com.mx
+📧 fernandovazquez.favm@gmail.com
 
 🌐 https://neurovix.com.mx
 
 🏢 Sobre la empresa
-
 ALRA PLASTIC RECYCLING S.A. de C.V.
 Empresa mexicana dedicada al reciclaje y aprovechamiento sustentable de plásticos industriales.
 Este sistema fue desarrollado para digitalizar completamente su operación y optimizar la trazabilidad, control y eficiencia en cada etapa del proceso productivo.
