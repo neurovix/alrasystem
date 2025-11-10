@@ -76,35 +76,35 @@ Permite el seguimiento completo del proceso de reciclaje — desde la **entrada 
 ### 👥 Pantalla de bienvenida
 > Control de roles, accesos y autenticación segura con Supabase Auth.
 
-![Usuarios Screenshot](./public/screenshot_welcome.png)
+![Usuarios Screenshot](./public/welcome.png)
 
 ---
 
 ### 🏠 Dashboard principal
 > Información mensual de lotes, sublotes, inventario y rendimiento general.
 
-![Dashboard Screenshot](./public/screenshot_index.png)
+![Dashboard Screenshot](./public/index.png)
 
 ---
 
 ### 📦 Lotes y sublotes
 > Informacion completa de un lote con sublotes (incluye imagenes).
 
-![Lotes Screenshot](./public/screenshot_informacion_lote.png)
+![Lotes Screenshot](./public/informacion.png)
 
 ---
 
 ### 🧾 Busqueda
 > Busqueda de lotes en base a su nombre o id.
 
-![Reportes Screenshot](./public/screenshot_busqueda.png)
+![Reportes Screenshot](./public/search.png)
 
 ---
 
 ### 🧱 Inventario
 > Visualización del inventario actual y graficas para mejor entendimiento.
 
-![Inventario Screenshot](./public/screenshot_inventario.png)
+![Inventario Screenshot](./public/inventario.png)
 
 ---
 
