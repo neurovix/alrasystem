@@ -59,15 +59,15 @@ Permite el seguimiento completo del proceso de reciclaje — desde la **entrada 
 ---
 
 ### 📱 Estructura general del proyecto
-###### 📦 alrasystem
-###### ┣ 📂 app/ # Pantallas principales (Dashboards, Lotes, Inventario)
-###### ┣ 📂 components/ # Componentes reutilizables (Cards, Buttons, Inputs, etc.)
-###### ┣ 📂 lib/ # Conexiones a Supabase, helpers y lógica de negocio
-###### ┣ 📂 assets/ # Íconos, logos, imágenes, fonts
-###### ┣ 📂 providers/ # Supabase auth
-###### ┣ 📂 constants/ # Iconos y fuentes
-###### ┣ 📂 database/ # Estructura de la base de datos
-###### ┗ 📜 README.md
+#### 📦 alrasystem
+##### ┣ 📂 app/ # Pantallas principales (Dashboards, Lotes, Inventario)
+##### ┣ 📂 components/ # Componentes reutilizables (Cards, Buttons, Inputs, etc.)
+##### ┣ 📂 lib/ # Conexiones a Supabase, helpers y lógica de negocio
+##### ┣ 📂 assets/ # Íconos, logos, imágenes, fonts
+##### ┣ 📂 providers/ # Supabase auth
+##### ┣ 📂 constants/ # Iconos y fuentes
+##### ┣ 📂 database/ # Estructura de la base de datos
+##### ┗ 📜 README.md
 
 ---
 
