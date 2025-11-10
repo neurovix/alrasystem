@@ -58,16 +58,16 @@ Permite el seguimiento completo del proceso de reciclaje — desde la **entrada 
 
 ---
 
-## 📱 Estructura general del proyecto
-📦 alrasystem
-┣ 📂 app/ # Pantallas principales (Dashboards, Lotes, Inventario)
-┣ 📂 components/ # Componentes reutilizables (Cards, Buttons, Inputs, etc.)
-┣ 📂 lib/ # Conexiones a Supabase, helpers y lógica de negocio
-┣ 📂 assets/ # Íconos, logos, imágenes, fonts
-┣ 📂 providers/ # Supabase auth
-┣ 📂 constants/ # Iconos y fuentes
-┣ 📂 database/ # Estructura de la base de datos
-┗ 📜 README.md
+### 📱 Estructura general del proyecto
+# 📦 alrasystem
+# ┣ 📂 app/ # Pantallas principales (Dashboards, Lotes, Inventario)
+# ┣ 📂 components/ # Componentes reutilizables (Cards, Buttons, Inputs, etc.)
+# ┣ 📂 lib/ # Conexiones a Supabase, helpers y lógica de negocio
+# ┣ 📂 assets/ # Íconos, logos, imágenes, fonts
+# ┣ 📂 providers/ # Supabase auth
+# ┣ 📂 constants/ # Iconos y fuentes
+# ┣ 📂 database/ # Estructura de la base de datos
+# ┗ 📜 README.md
 
 ---
 
@@ -108,13 +108,6 @@ Permite el seguimiento completo del proceso de reciclaje — desde la **entrada 
 
 ---
 
-### 👨‍💼 Clientes
-> Listado, historial y análisis de compras o devoluciones.
-
-![Clientes Screenshot](./screenshots/clientes.png)
-
----
-
 ## ⚙️ Instalación y ejecución
 
 ### Requisitos previos
@@ -134,7 +127,7 @@ cd alrasystem
 npm install
 
 # Configurar variables de entorno
-cp .env.example .env
+touch .env.local
 # Editar las variables con tu URL y API Key de Supabase
 🔑 Variables de entorno (.env)
 EXPO_PUBLIC_SUPABASE_URL=https://xxxxx.supabase.co
@@ -142,6 +135,7 @@ EXPO_PUBLIC_SUPABASE_ANON_KEY=your_public_anon_key
 
 # Ejecutar la app
 npx expo start
+```
 
 Luego escanea el código QR con Expo Go para ejecutar la aplicación en tu dispositivo.
 
