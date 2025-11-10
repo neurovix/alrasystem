@@ -6,7 +6,7 @@ Permite el seguimiento completo del proceso de reciclaje — desde la **entrada 
 ---
 
 ## 🎥 Ver app
-[▶️ Ver video](./public/video_welcome.mp4)
+[▶️ Ver video](https://xzeeudfqafydqizuqorm.supabase.co/storage/v1/object/public/lotes/video_welcome.mp4)
 
 ---
 
