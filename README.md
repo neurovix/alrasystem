@@ -5,6 +5,10 @@ Permite el seguimiento completo del proceso de reciclaje — desde la **entrada 
 
 ---
 
+![Video ALRA APP](./public/video_welcome.mp4)
+
+---
+
 ## 🚀 Funcionalidades principales
 
 ### 🔹 Seguimiento de lotes y sublotes
@@ -146,17 +150,20 @@ Luego escanea el código QR con Expo Go para ejecutar la aplicación en tu dispo
 🧠 IA para predicción de rendimiento y optimización de planta
 📲 Notificaciones push automáticas para estados de lotes
 
-👨‍💻 Desarrollado por
+## 👨‍💻 Desarrollado por
+- Fernando Alejandro Vazquez Medina
+- Fullstack Developer — Fundador de Neurovix
+- 📧 fernandovazquez.favm@gmail.com
 
-Fernando Alejandro Vazquez Medina
-Fullstack Developer — Fundador de Neurovix
-📧 fernandovazquez.favm@gmail.com
-
+```bash
 🌐 https://neurovix.com.mx
+```
 
-🏢 Sobre la empresa
-ALRA PLASTIC RECYCLING S.A. de C.V.
+## 🏢 Sobre la empresa
+- ALRA PLASTIC RECYCLING S.A. de C.V.
+```bash
 Empresa mexicana dedicada al reciclaje y aprovechamiento sustentable de plásticos industriales.
 Este sistema fue desarrollado para digitalizar completamente su operación y optimizar la trazabilidad, control y eficiencia en cada etapa del proceso productivo.
+```
 
-© 2025 Neurovix. Todos los derechos reservados.
+### © 2025 Neurovix. Todos los derechos reservados.
