@@ -9,7 +9,7 @@
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true,
+      "supportsTablet": false,
       "bundleIdentifier": "com.fernando.nrv.alra",
       "infoPlist": {
         "NSCameraUsageDescription": "La aplicación necesita acceder a la cámara para escanear códigos QR y tomar fotos de diferentes procesos.",
