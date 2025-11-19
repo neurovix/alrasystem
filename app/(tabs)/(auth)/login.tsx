@@ -24,14 +24,8 @@ export default function LogIn() {
   const [password, setPassword] = useState<string>("");
   const [_, setError] = useState<String | null>("");
   const [loading, setLoading] = useState(false);
-  const [userData, setUserData] = useState<{ estatus: boolean }>({ estatus: false });
 
-  type LoginForm = {
-    Email: string,
-    Password: string,
-  }
-
-  const onSubmmit = async (data: LoginForm) => {
+  const onSubmmit = async (data: { Email: string; Password: string }) => {
     try {
       setLoading(true);
       setError(null);
@@ -57,10 +51,8 @@ export default function LogIn() {
         return;
       }
 
-      setUserData({ estatus: perfil.estatus });
-
       if (!perfil.estatus) {
-        Alert.alert("Error", "No tienes permiso de acceso (login)");
+        Alert.alert("Error", "Tu cuenta ha sido eliminada");
         await supabase.auth.signOut();
         return;
       }
@@ -86,7 +78,6 @@ export default function LogIn() {
       <KeyboardAvoidingView
         className="flex-1"
         behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 60 : 0}
       >
         <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <ScrollView
@@ -103,7 +94,7 @@ export default function LogIn() {
                   className="w-32 h-32"
                 />
                 <Text className="font-ibm-condensed-bold text-4xl pt-5">
-                  Inicio de sesion
+                  Inicio de sesión
                 </Text>
               </View>
 
@@ -111,42 +102,28 @@ export default function LogIn() {
                 <View>
                   <Text className="text-xl font-ibm-condensed-bold mb-3">Email</Text>
                   <View className="bg-white flex flex-row items-center border border-black rounded-2xl px-4 py-2">
-                    <Image
-                      source={icons.email}
-                      resizeMode="contain"
-                      className="w-6 h-6 mr-3"
-                    />
+                    <Image source={icons.email} className="w-6 h-6 mr-3" />
                     <TextInput
                       keyboardType="email-address"
-                      className="font-ibm-devanagari-regular flex-1 text-base"
-                      placeholder="Ingresa tu correo electronico"
+                      className="flex-1 text-base"
+                      placeholder="Ingresa tu correo electrónico"
                       placeholderTextColor="#9CA3AF"
                       autoCapitalize="none"
-                      autoCorrect={false}
-                      returnKeyType="next"
-                      onChangeText={text => setEmail(text)}
+                      onChangeText={setEmail}
                     />
                   </View>
                 </View>
 
-                <View className="mt-4">
-                  <Text className="text-xl font-ibm-condensed-bold mb-3">
-                    Contraseña
-                  </Text>
+                <View>
+                  <Text className="text-xl font-ibm-condensed-bold mb-3">Contraseña</Text>
                   <View className="bg-white flex flex-row items-center border border-black rounded-2xl px-4 py-2">
-                    <Image
-                      source={icons.password}
-                      resizeMode="contain"
-                      className="w-6 h-6 mr-3"
-                    />
+                    <Image source={icons.password} className="w-6 h-6 mr-3" />
                     <TextInput
-                      secureTextEntry={true}
-                      className="font-ibm-devanagari-regular flex-1 text-base"
+                      secureTextEntry
+                      className="flex-1 text-base"
                       placeholder="Ingresa tu contraseña"
                       placeholderTextColor="#9CA3AF"
-                      returnKeyType="done"
-                      onSubmitEditing={Keyboard.dismiss}
-                      onChangeText={text => setPassword(text)}
+                      onChangeText={setPassword}
                     />
                   </View>
                 </View>
@@ -154,24 +131,22 @@ export default function LogIn() {
                 <View className="pt-6">
                   <TouchableOpacity
                     className="bg-green-700 rounded-2xl py-4"
-                    onPress={async () => {
-                      const data: LoginForm = {
-                        Email: email,
-                        Password: password,
-                      }
-
-                      await onSubmmit(data);
-                    }}
+                    onPress={() =>
+                      onSubmmit({ Email: email, Password: password })
+                    }
                   >
                     <Text className="text-white text-center text-2xl font-ibm-condensed-semibold">
-                      Iniciar sesion
+                      Iniciar sesión
                     </Text>
                   </TouchableOpacity>
                 </View>
-                <View className="flex flex-row justify-center pt-10">
-                  <Text className="mr-1 font-ibm-condensed-light text-xl">¿No tienes una cuenta aun?{' '}</Text>
-                  <TouchableOpacity className="ml-1 flex items-center" onPress={() => router.replace("/(tabs)/(auth)/signin")}>
-                    <Text className="text-green-600 text-xl underline font-ibm-devanagari-bold">Registrarme</Text>
+
+                <View className="flex flex-row items-center justify-center pt-10">
+                  <Text className="text-xl">¿No tienes cuenta? </Text>
+                  <TouchableOpacity onPress={() => router.replace("/(tabs)/(auth)/signin")}>
+                    <Text className="text-green-600 text-xl underline font-bold">
+                      Registrarme
+                    </Text>
                   </TouchableOpacity>
                 </View>
               </View>

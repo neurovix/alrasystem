@@ -32,6 +32,7 @@ export default function Configuracion() {
   const [modalVisible, setModalVisible] = useState(false);
   const [editField, setEditField] = useState<"nombre" | "email" | null>(null);
   const [newValue, setNewValue] = useState("");
+  const [userID, setUserID] = useState<String>("");
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -61,6 +62,8 @@ export default function Configuracion() {
           });
         }
       }
+
+      setUserID(user.id);
     };
 
     fetchUser();
@@ -70,6 +73,34 @@ export default function Configuracion() {
     setEditField(field);
     setNewValue(userData?.[field] || "");
     setModalVisible(true);
+  };
+
+  const deleteAccount = async () => {
+    Alert.alert(
+      "Cerrar Sesión",
+      "¿Estás seguro que deseas eliminar tu cuenta?",
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Eliminar cuenta",
+          style: "destructive",
+          onPress: async () => {
+            const { data: _, error: updateError } = await supabase.from("usuarios")
+              .update({
+                estatus: false,
+              })
+              .eq("id_usuario", userID);
+
+            if (updateError) {
+              Alert.alert("Error", "No se pudo eliminar tu cuenta, intenta mas tarde");
+              return;
+            }
+            await supabase.auth.signOut();
+            router.replace("/(tabs)");
+          },
+        },
+      ]
+    );
   };
 
   const handleSave = async () => {
@@ -208,12 +239,28 @@ export default function Configuracion() {
               </View>
               <MaterialCommunityIcons name="chevron-right" size={20} color="#9CA3AF" />
             </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={deleteAccount}
+              className="flex flex-row items-center px-4 py-4 bg-red-500 active:bg-red-200"
+              activeOpacity={0.7}
+            >
+              <View className="w-12 h-12 bg-red-100 rounded-full items-center justify-center mr-4">
+                <MaterialCommunityIcons name="delete" size={24} color="#EF4444" />
+              </View>
+              <View className="flex-1">
+                <Text className="font-ibm-devanagari-bold text-lg text-white">
+                  Eliminar cuenta
+                </Text>
+              </View>
+              <MaterialCommunityIcons name="chevron-right" size={20} color="#9CA3AF" />
+            </TouchableOpacity>
           </View>
 
           <View className="mt-8 items-center">
             <Text className="text-gray-400 text-sm">Versión 1.0.0</Text>
             <Text className="text-gray-400 text-xs mt-1">
-              © {new Date().getFullYear()} Aplicación creada por Neurovix S. de R.L. de C.V.
+              © {new Date().getFullYear()} Aplicación creada por Neurovix
             </Text>
           </View>
         </View>

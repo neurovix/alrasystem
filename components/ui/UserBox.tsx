@@ -8,7 +8,6 @@ export default function UserBox({ id_usuario, nombre, rol: initialRol, estatus: 
   const [rol, setRol] = useState(initialRol);
   const isActivo = estatus === true;
 
-  // ✅ Cambiar estatus (alta / baja)
   const handleUserEstatus = async () => {
     const nuevoEstatus = !isActivo;
     const accion = nuevoEstatus ? "dar de alta" : "dar de baja";
@@ -47,7 +46,6 @@ export default function UserBox({ id_usuario, nombre, rol: initialRol, estatus: 
     );
   };
 
-  // ✅ Cambiar rol (usuario <-> administrador)
   const handleUserRol = async () => {
     const nuevoRol = rol === "Administrador" ? "Operador" : "Administrador";
     const accion = nuevoRol === "Administrador" ? "asignar como administrador" : "degradar a operador";
@@ -108,12 +106,9 @@ export default function UserBox({ id_usuario, nombre, rol: initialRol, estatus: 
 
       <View className="w-3/12 flex items-end">
         <View className="w-full flex flex-row">
-          {/* 🔁 Cambiar rol */}
           <TouchableOpacity className="w-1/2" onPress={handleUserRol}>
             <AntDesign name="user-switch" size={24} color="black" />
           </TouchableOpacity>
-
-          {/* 🔄 Cambiar estatus */}
           <TouchableOpacity className="w-1/2" onPress={handleUserEstatus}>
             {isActivo ? (
               <AntDesign name="close" size={28} color="red" />
