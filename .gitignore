@@ -38,6 +38,9 @@ yarn-error.*
 
 app-example
 
+# Local files
+alra-plastic-35a0b25b40d3.json
+
 # generated native folders
 /ios
 /android
