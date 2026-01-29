@@ -198,4 +198,4 @@ Then scan the QR code with Expo Go to run the application on your device.
 
 ## 👨‍💻 Developed by
 
-- Fernando Alejandro
+- Fernando A. Vazquez M. (Neurovix) Fullstack Developer
