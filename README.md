@@ -1,170 +1,201 @@
 # ♻️ ALRA PLASTIC RECYCLING S.A. de C.V.
 
-Sistema integral de trazabilidad y control desarrollado por **Neurovix** para **ALRA PLASTIC RECYCLING S.A. de C.V.**  
-Permite el seguimiento completo del proceso de reciclaje — desde la **entrada del material** hasta la **venta o devolución al cliente** — mediante el uso de **códigos QR**, reportes automatizados y dashboards inteligentes.
+Comprehensive traceability and control system developed by **Neurovix** for **ALRA PLASTIC RECYCLING S.A. de C.V.** It allows for complete tracking of the recycling process—from **material receipt** to **sale or return to the customer**—through the use of **QR codes**, automated reports, and intelligent dashboards.
 
 ---
 
-## 🎥 Ver app
-[▶️ Ver video](https://xzeeudfqafydqizuqorm.supabase.co/storage/v1/object/public/lotes/video_welcome.mp4)
+## 🎥 View app
+
+[▶️ View video](https://xzeeudfqafydqizuqorm.supabase.co/storage/v1/object/public/lotes/video_welcome.mp4)
 
 ---
 
-## 🚀 Funcionalidades principales
+## 🚀 Main Features
 
-### 🔹 Seguimiento de lotes y sublotes
-- Alta de **lotes** y **sublotes** con **QR generados automáticamente**.
-- Escaneo de QR desde la app para visualizar información del lote o sublote.
-- Registro de datos clave: peso, tipo de material, cliente, estado y ubicación.
-- Asociación jerárquica entre lotes y sublotes para mantener trazabilidad completa.
+### 🔹 Batch and Sub-Batch Tracking
 
-### 🔹 Manejo de inventario
-- Control de materiales en tiempo real, con actualización automática según movimientos.
-- Clasificación por tipo de material (PET, PEAD, PEBD, PP, etc.).
-- Gráficos y estadísticas de inventario total y por tipo de material.
-- Ajustes automáticos al finalizar o reabrir lotes.
+- Create **batches** and **sub-batches** with **automatically generated QR codes**.
 
-### 🔹 Administración de usuarios
-- Sistema de roles con permisos: **Administrador**, **Operador**.
-- Registro, edición, suspensión y eliminación de usuarios.
-- Autenticación segura mediante **Supabase Auth (JWT)**.
+- Scan QR codes from the app to view batch or sub-batch information.
 
-### 🔹 Gestión de materiales y clientes
-- Alta, edición y eliminación de materiales reciclables.
-- Registro de clientes con historial de ventas, devoluciones y transacciones.
-- Reportes filtrados por cliente, material o periodo de tiempo.
+- Record key data: weight, material type, customer, status, and location.
 
-### 🔹 Dashboards y analíticas
-- Panel principal con estadísticas **mensuales y en tiempo real**:
-  - Lotes en proceso 🏭  
-  - Lotes finalizados ✅  
-  - Material procesado ♻️  
-  - Gráficos para el area de inventario 📊  
-- Visualización clara para la toma de decisiones operativas.
+- Hierarchical association between batches and sub-batches to maintain complete traceability.
 
-### 🔹 Reportes automatizados
-- **Reporte de lotes:** Al finalizar el lote o al momento que se necesite se puede generar manualmente.
-- **Reporte de inventario:** entre `fecha x` y `fecha y`.
-- **Reporte de clientes:** con totales, devoluciones y compras.  
-- Exportación de reportes a PDF y envío automático por correo.
+### 🔹 Inventory Management
+
+- Real-time material control with automatic updates based on movements.
+
+- Classification by material type (PET, HDPE, LDPE, PP, etc.).
+
+- Charts and statistics of total inventory and by material type.
+
+- Automatic adjustments upon completion or reopening of batches.
+
+### 🔹 User Administration
+
+- Role-based system with permissions: **Administrator**, **Operator**.
+
+- User registration, editing, suspension, and deletion.
+
+- Secure authentication via **Supabase Auth (JWT)**.
+
+### 🔹 Material and Customer Management
+
+- Adding, editing, and deleting recyclable materials.
+
+- Customer registration with sales, returns, and transaction history.
+
+- Reports filtered by customer, material, or time period.
+
+### 🔹 Dashboards and Analytics
+
+- Main panel with **monthly and real-time** statistics:
+
+- Batches in process 🏭
+
+- Completed batches ✅
+
+- Material processed ♻️
+
+- Inventory charts 📊
+- Clear visualization for operational decision-making.
+
+### 🔹 Automated Reports
+
+- **Batch Report:** Can be generated manually upon batch completion or whenever needed.
+
+- **Inventory Report:** Between `date x` and `date y`.
+
+- **Customer Report:** With totals, returns, and purchases.
+
+- Export reports to PDF and automatic email delivery.
 
 ---
 
-## 🧩 Tecnologías utilizadas
+## 🧩 Technologies Used
 
-| Componente | Descripción |
-|-------------|-------------|
-| **Frontend móvil** | React Native + Expo Go + NativeWind |
-| **Backend** | Supabase (Base de datos y API REST integrada) |
-| **Autenticación** | Supabase Auth (correo y contraseña) |
-| **Almacenamiento** | Supabase Storage (reportes y archivos) |
-| **Gráficas** |  `react-native-svg` |
-| **QR** | Librerías `expo-camera` |
+| Component | Description |
+
+-------------|-------------|
+
+**Mobile Frontend** | React Native + Expo Go + NativeWind |
+
+**Backend** | Supabase (Integrated Database and REST API) |
+
+**Authentication** | Supabase Auth (email and password) |
+
+**Storage** | Supabase Storage (reports and files) |
+
+**Graphics** | `react-native-svg` |
+
+**QR Codes** | `expo-camera` Libraries |
 
 ---
 
-### 📱 Estructura general del proyecto
+### 📱 General Project Structure
+
 #### 📦 alrasystem
-##### ┣ 📂 app/ # Pantallas principales (Dashboards, Lotes, Inventario)
-##### ┣ 📂 components/ # Componentes reutilizables (Cards, Buttons, Inputs, etc.)
-##### ┣ 📂 lib/ # Conexiones a Supabase, helpers y lógica de negocio
-##### ┣ 📂 assets/ # Íconos, logos, imágenes, fonts
+
+##### ┣ 📂 app/ # Main Screens (Dashboards, Batches, Inventory)
+
+##### ┣ 📂 components/ # Reusable Components (Cards, Buttons, Inputs, etc.)
+
+##### ┣ 📂 lib/ # Connections to Supabase, helpers, and business logic
+
+##### ┣ 📂 assets/ # Icons, logos, images, fonts
+
 ##### ┣ 📂 providers/ # Supabase auth
-##### ┣ 📂 constants/ # Iconos y fuentes
-##### ┣ 📂 database/ # Estructura de la base de datos
+
+##### ┣ 📂 constants/ # Icons and fonts
+
+##### ┣ 📂 database/ # Database structure
+
 ##### ┗ 📜 README.md
 
 ---
 
-## 📸 Capturas de pantalla
+## 📸 Screenshots
 
-### 👥 Pantalla de bienvenida
-> Control de roles, accesos y autenticación segura con Supabase Auth.
+### 👥 Welcome Screen
 
-![Usuarios Screenshot](./public/welcome.png)
+> Role control, access, and secure authentication with Supabase Auth.
+
+![Users Screenshot](./public/welcome.png)
 
 ---
 
-### 🏠 Dashboard principal
-> Información mensual de lotes, sublotes, inventario y rendimiento general.
+### 🏠 Main Dashboard
+
+> Monthly information on batches, sub-batches, inventory, and overall performance.
 
 ![Dashboard Screenshot](./public/index.png)
 
 ---
 
-### 📦 Lotes y sublotes
-> Informacion completa de un lote con sublotes (incluye imagenes).
+### 📦 Batches and Sub-batches
 
-![Lotes Screenshot](./public/informacion.png)
+> Complete information on a batch with sub-batches (includes images).
 
----
-
-### 🧾 Busqueda
-> Busqueda de lotes en base a su nombre o id.
-
-![Reportes Screenshot](./public/search.png)
+![Batches Screenshot](./public/information.png)
 
 ---
 
-### 🧱 Inventario
-> Visualización del inventario actual y graficas para mejor entendimiento.
+### 🧾 Search
 
-![Inventario Screenshot](./public/inventario.png)
+> Search for batches based on their name or ID.
+
+![Reports Screenshot](./public/search.png)
 
 ---
 
-## ⚙️ Instalación y ejecución
+### 🧱 Inventory
 
-### Requisitos previos
+> Visualization of the current inventory and graphs for better understanding.
+
+![Inventory Screenshot](./public/inventario.png)
+
+---
+
+## ⚙️ Installation and Execution
+
+### Prerequisites
+
 - Node.js v18+
 - Expo CLI && EAS CLI
-- Cuenta en Supabase (con proyecto configurado)
-- Dispositivo físico o emulador con **Expo Go**
+- Supabase account (with a configured project)
+- Physical device or emulator with **Expo Go**
 
-### Instalación local
+### Local Installation
 
 ```bash
-# Clonar el repositorio
+# Clone the repository
 git clone https://github.com/neurovix/alrasystem.git
 cd alrasystem
 
-# Instalar dependencias
+# Install dependencies
 npm install
 
-# Configurar variables de entorno
+# Configure environment variables
 touch .env.local
-# Editar las variables con tu URL y API Key de Supabase
-🔑 Variables de entorno (.env)
+# Edit the variables with your Supabase URL and API Key
+🔑 Environment Variables (.env)
 EXPO_PUBLIC_SUPABASE_URL=https://xxxxx.supabase.co
 EXPO_PUBLIC_SUPABASE_ANON_KEY=your_public_anon_key
 
-# Ejecutar la app
+# Run the app
 npx expo start
 ```
 
-Luego escanea el código QR con Expo Go para ejecutar la aplicación en tu dispositivo.
+Then scan the QR code with Expo Go to run the application on your device.
 
-📅 Próximas mejoras
-🌐 Panel web administrativo (integración con el backend móvil)
-📊 Reportes con filtros avanzados y estadísticas inteligentes
-📦 Integración con lector QR industrial
-🧠 IA para predicción de rendimiento y optimización de planta
-📲 Notificaciones push automáticas para estados de lotes
+📅 Upcoming improvements
+🌐 Administrative web panel (integration with the mobile backend)
+📊 Reports with advanced filters and smart statistics
+📦 Integration with an industrial QR reader
+🧠 AI for performance prediction and plant optimization
+📲 Automatic push notifications for batch statuses
 
-## 👨‍💻 Desarrollado por
-- Fernando Alejandro Vazquez Medina
-- Fullstack Developer — Fundador de Neurovix
-- 📧 fernandovazquez.favm@gmail.com
+## 👨‍💻 Developed by
 
-```bash
-🌐 https://neurovix.com.mx
-```
-
-## 🏢 Sobre la empresa
-- ALRA PLASTIC RECYCLING S.A. de C.V.
-```bash
-Empresa mexicana dedicada al reciclaje y aprovechamiento sustentable de plásticos industriales.
-Este sistema fue desarrollado para digitalizar completamente su operación y optimizar la trazabilidad, control y eficiencia en cada etapa del proceso productivo.
-```
-
-### © 2025 Neurovix. Todos los derechos reservados.
+- Fernando Alejandro
